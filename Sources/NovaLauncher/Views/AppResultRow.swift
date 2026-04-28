@@ -9,17 +9,10 @@ struct AppResultRow: View {
         HStack(spacing: 12) {
             AppIconView(url: application.url, size: 36)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(application.name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(application.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            Text(application.name)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
 
             Spacer(minLength: 12)
 
@@ -29,7 +22,7 @@ struct AppResultRow: View {
             }
         }
         .padding(.horizontal, 12)
-        .frame(height: 58)
+        .frame(height: 52)
         .background(selectionBackground)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
