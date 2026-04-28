@@ -12,24 +12,6 @@ struct NovaLauncherApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("Nova Launcher", id: "main") {
-            ContentView(
-                store: services.launcherStore,
-                openLauncher: { services.showCommandPalette() }
-            )
-            .preferredColorScheme(currentTheme.colorScheme)
-            .frame(minWidth: 780, minHeight: 560)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .commands {
-            CommandGroup(after: .appInfo) {
-                Button("Open Launcher") {
-                    services.showCommandPalette()
-                }
-                .keyboardShortcut(.space, modifiers: [.option])
-            }
-        }
-
         Settings {
             SettingsView(
                 store: services.launcherStore,
