@@ -5,6 +5,7 @@ struct CommandPaletteView: View {
     let dismiss: () -> Void
     let onLayoutChange: (Bool) -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("appearance.theme") private var themeRawValue = AppTheme.system.rawValue
 
     var body: some View {
@@ -68,10 +69,16 @@ struct CommandPaletteView: View {
             .frame(height: 38)
         }
         .padding(.horizontal, 26)
+        .padding(.top, 2)
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.searchBarHeight)
         .glassEffect(.regular.interactive(), in: paletteShape)
         .clipShape(paletteShape)
-        .shadow(color: .black.opacity(0.22), radius: 20, x: 0, y: 12)
+        .shadow(
+            color: .black.opacity(colorScheme == .dark ? 0.22 : 0.08),
+            radius: colorScheme == .dark ? 20 : 12,
+            x: 0,
+            y: colorScheme == .dark ? 12 : 6
+        )
     }
 
     private var resultsPanel: some View {
@@ -86,7 +93,12 @@ struct CommandPaletteView: View {
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.resultsPanelHeight)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 10)
+        .shadow(
+            color: .black.opacity(colorScheme == .dark ? 0.18 : 0.07),
+            radius: colorScheme == .dark ? 18 : 10,
+            x: 0,
+            y: colorScheme == .dark ? 10 : 5
+        )
     }
 
     @ViewBuilder

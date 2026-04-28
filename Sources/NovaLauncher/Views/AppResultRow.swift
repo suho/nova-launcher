@@ -26,13 +26,6 @@ struct AppResultRow: View {
             if isOpening {
                 ProgressView()
                     .controlSize(.small)
-            } else if isSelected {
-                Text("Return")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
         }
         .padding(.horizontal, 12)
