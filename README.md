@@ -21,3 +21,33 @@ focuses on local app launching through a keyboard-first command palette.
 
 The script builds the SwiftPM target, stages `dist/NovaLauncher.app`, and opens
 the app bundle as a foreground macOS application.
+
+## Install with Homebrew
+
+This private repo includes a Homebrew cask that builds the app locally from the
+`main` branch and installs `NovaLauncher.app`.
+
+Prerequisites:
+
+- Homebrew
+- SSH access to `git@github.com:suho/nova-launcher.git`
+- Xcode Command Line Tools with Swift 6.2 or newer
+
+Tap the private repo with its explicit Git URL, then install the cask:
+
+```bash
+brew tap suho/nova-launcher git@github.com:suho/nova-launcher.git
+brew install --cask suho/nova-launcher/nova-launcher
+```
+
+Because the cask tracks the latest `main` branch, use `--greedy` when upgrading:
+
+```bash
+brew upgrade --cask --greedy suho/nova-launcher/nova-launcher
+```
+
+To uninstall:
+
+```bash
+brew uninstall --cask suho/nova-launcher/nova-launcher
+```

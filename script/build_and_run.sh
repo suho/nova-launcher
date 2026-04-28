@@ -16,17 +16,20 @@ INFO_PLIST="$APP_CONTENTS/Info.plist"
 
 cd "$ROOT_DIR"
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+usage() {
+  echo "usage: $0 [run|--bundle|--debug|--logs|--telemetry|--verify]" >&2
+}
 
-swift build
-BUILD_BINARY="$(swift build --show-bin-path)/$APP_NAME"
+build_bundle() {
+  swift build
+  BUILD_BINARY="$(swift build --show-bin-path)/$APP_NAME"
 
-rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS"
-cp "$BUILD_BINARY" "$APP_BINARY"
-chmod +x "$APP_BINARY"
+  rm -rf "$APP_BUNDLE"
+  mkdir -p "$APP_MACOS"
+  cp "$BUILD_BINARY" "$APP_BINARY"
+  chmod +x "$APP_BINARY"
 
-cat >"$INFO_PLIST" <<PLIST
+  cat >"$INFO_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -48,14 +51,31 @@ cat >"$INFO_PLIST" <<PLIST
 </dict>
 </plist>
 PLIST
+}
 
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"
 }
 
 case "$MODE" in
+  run|--debug|debug|--logs|logs|--telemetry|telemetry|--verify|verify)
+    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+    build_bundle
+    ;;
+  --bundle|bundle)
+    build_bundle
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
+
+case "$MODE" in
   run)
     open_app
+    ;;
+  --bundle|bundle)
     ;;
   --debug|debug)
     lldb -- "$APP_BINARY"
@@ -72,9 +92,5 @@ case "$MODE" in
     open_app
     sleep 1
     pgrep -x "$APP_NAME" >/dev/null
-    ;;
-  *)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2
-    exit 2
     ;;
 esac
