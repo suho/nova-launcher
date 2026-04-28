@@ -1,0 +1,51 @@
+import SwiftUI
+
+struct AppResultRow: View {
+    let application: ApplicationEntry
+    let isSelected: Bool
+    let isOpening: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            AppIconView(url: application.url, size: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(application.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(application.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 12)
+
+            if isOpening {
+                ProgressView()
+                    .controlSize(.small)
+            } else if isSelected {
+                Text("Return")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 58)
+        .background(selectionBackground)
+        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var selectionBackground: some View {
+        if isSelected {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.primary.opacity(0.1))
+        }
+    }
+}
