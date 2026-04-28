@@ -124,6 +124,8 @@ final class LauncherStore: ObservableObject {
                 return "Move \(focusedWindowDescription) to the left half"
             case .rightHalf:
                 return "Move \(focusedWindowDescription) to the right half"
+            case .maximize:
+                return "Maximize \(focusedWindowDescription)"
             case .nextDesktop:
                 return "Move \(focusedWindowDescription) to the next desktop"
             }

@@ -8,7 +8,7 @@ focuses on local app launching through a keyboard-first command palette.
 - Option-Space global launcher hotkey
 - Fast local app index for `/Applications`, `/System/Applications`, and user apps
 - Fuzzy app and command search with arrow-key navigation and Return-to-open
-- Basic focused-window commands for left half, right half, and next desktop
+- Basic focused-window commands for left half, right half, maximize, and next desktop
 - Menu bar utility with reindex, settings, and quit actions
 - Native Settings window for launch-at-login, theme, and shortcut customization
 - Dark, light, and system appearance modes

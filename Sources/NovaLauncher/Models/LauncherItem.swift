@@ -57,6 +57,7 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
 enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
     case leftHalf
     case rightHalf
+    case maximize
     case nextDesktop
 
     var id: String {
@@ -69,6 +70,8 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
             "Window: Left Half"
         case .rightHalf:
             "Window: Right Half"
+        case .maximize:
+            "Window: Maximize"
         case .nextDesktop:
             "Window: Next Desktop"
         }
@@ -80,6 +83,8 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
             "Resize the focused window to the left half"
         case .rightHalf:
             "Resize the focused window to the right half"
+        case .maximize:
+            "Maximize the focused window"
         case .nextDesktop:
             "Move the focused window to the next desktop"
         }
@@ -91,6 +96,8 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
             "rectangle.leadinghalf.inset.filled"
         case .rightHalf:
             "rectangle.trailinghalf.inset.filled"
+        case .maximize:
+            "arrow.up.left.and.arrow.down.right"
         case .nextDesktop:
             "rectangle.portrait.and.arrow.right"
         }
@@ -102,6 +109,8 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
             "window left half set left snap left tile left move left"
         case .rightHalf:
             "window right half set right snap right tile right move right"
+        case .maximize:
+            "window maximize max full screen fill zoom"
         case .nextDesktop:
             "window next desktop move next space send next desktop"
         }

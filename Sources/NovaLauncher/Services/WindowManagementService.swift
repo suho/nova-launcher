@@ -60,6 +60,9 @@ final class WindowManagementService {
         case .rightHalf:
             try setWindow(context.window, to: .rightHalf)
             return "Moved \(context.applicationName) right"
+        case .maximize:
+            try setWindow(context.window, to: .maximize)
+            return "Maximized \(context.applicationName)"
         case .nextDesktop:
             guard let windowID = context.windowID else {
                 throw WindowManagementError.windowNumberUnavailable
@@ -219,6 +222,7 @@ struct FocusedWindowContext {
 private enum WindowPlacement {
     case leftHalf
     case rightHalf
+    case maximize
 
     func frame(in visibleFrame: CGRect) -> CGRect {
         let halfWidth = floor(visibleFrame.width / 2)
@@ -238,6 +242,8 @@ private enum WindowPlacement {
                 width: visibleFrame.width - halfWidth,
                 height: visibleFrame.height
             )
+        case .maximize:
+            return visibleFrame
         }
     }
 }
