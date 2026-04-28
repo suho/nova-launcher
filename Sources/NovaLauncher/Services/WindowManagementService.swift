@@ -100,12 +100,7 @@ final class WindowManagementService {
     }
 
     func accessibilityTrusted(promptForPermission: Bool) -> Bool {
-        guard promptForPermission else {
-            return AXIsProcessTrusted()
-        }
-
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
+        AccessibilityPermissionService.isTrusted(promptForPermission: promptForPermission)
     }
 
     private func frame(of window: AXUIElement) -> CGRect? {

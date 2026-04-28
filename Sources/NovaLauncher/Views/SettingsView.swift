@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -8,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("appearance.theme") private var themeRawValue = AppTheme.system.rawValue
     @AppStorage(KeyboardShortcut.keyCodeDefaultsKey) private var shortcutKeyCode = Int(KeyboardShortcut.defaultShortcut.keyCode)
     @AppStorage(KeyboardShortcut.modifiersDefaultsKey) private var shortcutModifiers = Int(KeyboardShortcut.defaultShortcut.modifiers)
+    @State private var accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
 
     var body: some View {
         TabView {
@@ -33,6 +35,10 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: 360)
         .scenePadding()
+        .onAppear(perform: refreshAccessibilityPermission)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessibilityPermission()
+        }
     }
 
     private var generalTab: some View {
@@ -94,6 +100,30 @@ struct SettingsView: View {
 
     private var privacyTab: some View {
         Form {
+            Section("Window Management") {
+                LabeledContent("Accessibility") {
+                    Label(
+                        accessibilityPermissionGranted ? "Allowed" : "Required",
+                        systemImage: accessibilityPermissionGranted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(accessibilityPermissionGranted ? .green : .orange)
+                }
+
+                HStack {
+                    Button {
+                        AccessibilityPermissionService.openSystemSettings()
+                    } label: {
+                        Label("Open Accessibility Settings", systemImage: "gearshape")
+                    }
+
+                    Button {
+                        accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted(promptForPermission: true)
+                    } label: {
+                        Label("Check Again", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
+
             LabeledContent("Indexing") {
                 Text("Local")
                     .foregroundStyle(.secondary)
@@ -137,5 +167,9 @@ struct SettingsView: View {
                 LaunchAtLoginService.isEnabled = newValue
             }
         )
+    }
+
+    private func refreshAccessibilityPermission() {
+        accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
     }
 }
