@@ -74,10 +74,16 @@ struct CommandPaletteView: View {
         .glassEffect(.regular.interactive(), in: paletteShape)
         .clipShape(paletteShape)
         .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.22 : 0.08),
-            radius: colorScheme == .dark ? 20 : 12,
+            color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
+            radius: colorScheme == .dark ? 30 : 34,
             x: 0,
-            y: colorScheme == .dark ? 12 : 6
+            y: colorScheme == .dark ? 16 : 14
+        )
+        .shadow(
+            color: .black.opacity(colorScheme == .dark ? 0.08 : 0.025),
+            radius: colorScheme == .dark ? 12 : 18,
+            x: 0,
+            y: colorScheme == .dark ? 5 : 4
         )
     }
 
@@ -94,10 +100,16 @@ struct CommandPaletteView: View {
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.18 : 0.07),
-            radius: colorScheme == .dark ? 18 : 10,
+            color: .black.opacity(colorScheme == .dark ? 0.10 : 0.03),
+            radius: colorScheme == .dark ? 28 : 32,
             x: 0,
-            y: colorScheme == .dark ? 10 : 5
+            y: colorScheme == .dark ? 14 : 12
+        )
+        .shadow(
+            color: .black.opacity(colorScheme == .dark ? 0.07 : 0.02),
+            radius: colorScheme == .dark ? 10 : 16,
+            x: 0,
+            y: colorScheme == .dark ? 4 : 3
         )
     }
 
