@@ -114,7 +114,7 @@ final class SearchFieldHostView: NSView {
         NSLayoutConstraint.activate([
             textField.leadingAnchor.constraint(equalTo: leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: trailingAnchor),
-            textField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textField.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 2),
             textField.heightAnchor.constraint(equalToConstant: 36)
         ])
     }
