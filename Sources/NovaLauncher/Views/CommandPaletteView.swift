@@ -52,7 +52,7 @@ struct CommandPaletteView: View {
         HStack {
             CommandSearchField(
                 text: $store.query,
-                placeholder: "Search apps",
+                placeholder: "Search apps and commands",
                 onMove: { direction in
                     switch direction {
                     case .up:
@@ -115,7 +115,7 @@ struct CommandPaletteView: View {
 
     @ViewBuilder
     private var resultsContent: some View {
-        if store.filteredApplications.isEmpty {
+        if store.filteredItems.isEmpty {
             noResultsState
         } else {
             resultsList
@@ -126,15 +126,16 @@ struct CommandPaletteView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 4) {
-                    ForEach(store.filteredApplications) { application in
+                    ForEach(store.filteredItems) { item in
                         AppResultRow(
-                            application: application,
-                            isSelected: application.id == store.selectedID,
-                            isOpening: application.id == store.openingID
+                            item: item,
+                            subtitle: store.subtitle(for: item),
+                            isSelected: item.id == store.selectedID,
+                            isOpening: item.id == store.openingID
                         )
-                        .id(application.id)
+                        .id(item.id)
                         .onTapGesture {
-                            store.open(application, completion: dismiss)
+                            store.open(item, completion: dismiss)
                         }
                     }
                 }
@@ -158,7 +159,7 @@ struct CommandPaletteView: View {
                 .font(.system(size: 34, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Text("No Apps Found")
+            Text("No Results Found")
                 .font(.system(size: 18, weight: .semibold))
 
             Text(store.query)
@@ -177,8 +178,8 @@ struct CommandPaletteView: View {
 
             Spacer()
 
-            if let lastOpenedName = store.lastOpenedName {
-                Text("Opened \(lastOpenedName)")
+            if let statusMessage = store.statusMessage {
+                Text(statusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

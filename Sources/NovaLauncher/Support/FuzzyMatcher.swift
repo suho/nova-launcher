@@ -1,7 +1,19 @@
 import Foundation
 
+protocol FuzzySearchable {
+    var searchableName: String { get }
+    var searchCharacters: [Character] { get }
+    var sortName: String { get }
+}
+
+extension ApplicationEntry: FuzzySearchable {
+    var sortName: String {
+        name
+    }
+}
+
 enum FuzzyMatcher {
-    static func match(query: String, in applications: [ApplicationEntry], limit: Int) -> [ApplicationEntry] {
+    static func match<Candidate: FuzzySearchable>(query: String, in candidates: [Candidate], limit: Int) -> [Candidate] {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         guard !normalizedQuery.isEmpty else {
@@ -10,21 +22,21 @@ enum FuzzyMatcher {
 
         let queryCharacters = Array(normalizedQuery)
 
-        return applications
-            .compactMap { application -> (ApplicationEntry, Int)? in
+        return candidates
+            .compactMap { candidate -> (Candidate, Int)? in
                 guard let score = score(
                     queryCharacters,
                     queryString: normalizedQuery,
-                    against: application
+                    against: candidate
                 ) else {
                     return nil
                 }
 
-                return (application, score)
+                return (candidate, score)
             }
             .sorted {
                 if $0.1 == $1.1 {
-                    return $0.0.name.localizedStandardCompare($1.0.name) == .orderedAscending
+                    return $0.0.sortName.localizedStandardCompare($1.0.sortName) == .orderedAscending
                 }
 
                 return $0.1 > $1.1
@@ -36,24 +48,24 @@ enum FuzzyMatcher {
     private static func score(
         _ query: [Character],
         queryString: String,
-        against application: ApplicationEntry
+        against candidate: some FuzzySearchable
     ) -> Int? {
         guard !query.isEmpty else {
             return 0
         }
 
-        let candidate = application.searchCharacters
+        let candidateCharacters = candidate.searchCharacters
         var queryIndex = 0
         var score = 0
         var consecutiveMatches = 0
         var lastMatchIndex = -1
 
-        for candidateIndex in candidate.indices {
+        for candidateIndex in candidateCharacters.indices {
             guard queryIndex < query.count else {
                 break
             }
 
-            if candidate[candidateIndex] == query[queryIndex] {
+            if candidateCharacters[candidateIndex] == query[queryIndex] {
                 score += 10
 
                 if candidateIndex == queryIndex {
@@ -76,10 +88,10 @@ enum FuzzyMatcher {
             return nil
         }
 
-        if application.searchableName.hasPrefix(queryString) {
+        if candidate.searchableName.hasPrefix(queryString) {
             score += 80
         }
 
-        return score - candidate.count
+        return score - candidateCharacters.count
     }
 }
