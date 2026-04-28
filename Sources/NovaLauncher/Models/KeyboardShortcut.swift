@@ -2,7 +2,7 @@ import AppKit
 import Carbon
 import Foundation
 
-struct KeyboardShortcut: Equatable {
+struct KeyboardShortcut: Codable, Equatable, Hashable {
     var keyCode: UInt32
     var modifiers: UInt32
 

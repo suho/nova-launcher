@@ -19,10 +19,15 @@ final class AppServices {
         hotKeyManager.onPressed = { [weak self] in
             self?.toggleCommandPalette()
         }
+
+        store.onItemConfigurationsChanged = { [weak self] in
+            self?.syncItemHotKeys()
+        }
     }
 
     func start() {
         hotKeyManager.start()
+        syncItemHotKeys()
     }
 
     func showCommandPalette() {
@@ -31,5 +36,15 @@ final class AppServices {
 
     func toggleCommandPalette() {
         panelController.toggle()
+    }
+
+    private func syncItemHotKeys() {
+        let registrations = launcherStore.configuredHotKeyItems().map { item, shortcut in
+            ItemHotKeyRegistration(id: item.id, shortcut: shortcut) { [weak self] in
+                self?.launcherStore.openFromHotKey(item)
+            }
+        }
+
+        hotKeyManager.updateItemShortcuts(registrations)
     }
 }

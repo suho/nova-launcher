@@ -23,6 +23,11 @@ struct SettingsView: View {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
 
+            itemsTab
+                .tabItem {
+                    Label("Items", systemImage: "list.bullet.rectangle")
+                }
+
             appearanceTab
                 .tabItem {
                     Label("Appearance", systemImage: "paintpalette")
@@ -33,7 +38,7 @@ struct SettingsView: View {
                     Label("Privacy", systemImage: "lock.shield")
                 }
         }
-        .frame(width: 560, height: 360)
+        .frame(width: 760, height: 520)
         .scenePadding()
         .onAppear(perform: refreshAccessibilityPermission)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -81,6 +86,49 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .padding()
+    }
+
+    private var itemsTab: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("Applications and Commands")
+                    .font(.headline)
+
+                Spacer()
+
+                Text(hotKeyManager.itemStatusMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    Task {
+                        await store.refreshApplications()
+                    }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+            }
+
+            List {
+                Section("Window Management") {
+                    ForEach(store.commandItems) { item in
+                        itemConfigurationRow(for: item)
+                    }
+                }
+
+                Section("Applications") {
+                    if store.applicationItems.isEmpty {
+                        Text("Indexing Applications")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(store.applicationItems) { item in
+                            itemConfigurationRow(for: item)
+                        }
+                    }
+                }
+            }
+        }
         .padding()
     }
 
@@ -171,5 +219,96 @@ struct SettingsView: View {
 
     private func refreshAccessibilityPermission() {
         accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
+    }
+
+    private func itemConfigurationRow(for item: LauncherItem) -> some View {
+        ItemConfigurationRow(
+            item: item,
+            isEnabled: enabledBinding(for: item),
+            shortcut: itemShortcutBinding(for: item)
+        )
+    }
+
+    private func enabledBinding(for item: LauncherItem) -> Binding<Bool> {
+        Binding(
+            get: {
+                store.configuration(for: item).isEnabled
+            },
+            set: { isEnabled in
+                store.setEnabled(isEnabled, for: item)
+            }
+        )
+    }
+
+    private func itemShortcutBinding(for item: LauncherItem) -> Binding<KeyboardShortcut?> {
+        Binding(
+            get: {
+                store.configuration(for: item).shortcut
+            },
+            set: { shortcut in
+                store.setShortcut(shortcut, for: item)
+            }
+        )
+    }
+}
+
+private struct ItemConfigurationRow: View {
+    let item: LauncherItem
+    @Binding var isEnabled: Bool
+    @Binding var shortcut: KeyboardShortcut?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Toggle("Enabled", isOn: $isEnabled)
+                .labelsHidden()
+                .help("Enabled")
+
+            icon
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 16)
+
+            KeyboardShortcutRecorder(optionalShortcut: $shortcut, placeholder: "None")
+                .frame(width: 142, height: 30)
+
+            Button {
+                shortcut = nil
+            } label: {
+                Image(systemName: "xmark.circle")
+            }
+            .buttonStyle(.borderless)
+            .disabled(shortcut == nil)
+            .help("Clear Hotkey")
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch item {
+        case .application(let application):
+            AppIconView(url: application.url, size: 28)
+        case .windowCommand(let command):
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(.secondary.opacity(0.12))
+
+                Image(systemName: command.systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.primary)
+            }
+            .frame(width: 28, height: 28)
+        }
     }
 }

@@ -3,11 +3,36 @@ import Carbon
 import SwiftUI
 
 struct KeyboardShortcutRecorder: NSViewRepresentable {
-    @Binding var shortcut: KeyboardShortcut
+    @Binding private var shortcut: KeyboardShortcut?
+    private let placeholder: String
+    private let allowsClearing: Bool
+
+    init(shortcut: Binding<KeyboardShortcut>) {
+        _shortcut = Binding<KeyboardShortcut?>(
+            get: {
+                shortcut.wrappedValue
+            },
+            set: { newValue in
+                if let newValue {
+                    shortcut.wrappedValue = newValue
+                }
+            }
+        )
+        placeholder = "Set Shortcut"
+        allowsClearing = false
+    }
+
+    init(optionalShortcut: Binding<KeyboardShortcut?>, placeholder: String = "Set Shortcut") {
+        _shortcut = optionalShortcut
+        self.placeholder = placeholder
+        allowsClearing = true
+    }
 
     func makeNSView(context: Context) -> ShortcutRecorderControl {
         let control = ShortcutRecorderControl()
         control.shortcut = shortcut
+        control.placeholder = placeholder
+        control.allowsClearing = allowsClearing
         control.onChange = { shortcut in
             self.shortcut = shortcut
         }
@@ -16,18 +41,27 @@ struct KeyboardShortcutRecorder: NSViewRepresentable {
 
     func updateNSView(_ nsView: ShortcutRecorderControl, context: Context) {
         nsView.shortcut = shortcut
+        nsView.placeholder = placeholder
+        nsView.allowsClearing = allowsClearing
         nsView.updateLabel()
     }
 }
 
 final class ShortcutRecorderControl: NSView {
-    var shortcut = KeyboardShortcut.defaultShortcut {
+    var shortcut: KeyboardShortcut? = KeyboardShortcut.defaultShortcut {
         didSet {
             updateLabel()
         }
     }
 
-    var onChange: ((KeyboardShortcut) -> Void)?
+    var placeholder = "Set Shortcut" {
+        didSet {
+            updateLabel()
+        }
+    }
+
+    var allowsClearing = false
+    var onChange: ((KeyboardShortcut?) -> Void)?
 
     private let label = NSTextField(labelWithString: "")
     private var isRecording = false
@@ -82,6 +116,15 @@ final class ShortcutRecorderControl: NSView {
             return
         }
 
+        if allowsClearing,
+           Int(event.keyCode) == kVK_Delete || Int(event.keyCode) == kVK_ForwardDelete {
+            shortcut = nil
+            isRecording = false
+            onChange?(nil)
+            updateLabel()
+            return
+        }
+
         let modifiers = KeyboardShortcut.carbonModifiers(from: event.modifierFlags)
 
         guard modifiers != 0 else {
@@ -101,7 +144,8 @@ final class ShortcutRecorderControl: NSView {
     }
 
     func updateLabel() {
-        label.stringValue = isRecording ? "Press Shortcut" : shortcut.displayString
+        label.stringValue = isRecording ? "Press Shortcut" : shortcut?.displayString ?? placeholder
+        label.textColor = shortcut == nil ? .secondaryLabelColor : .labelColor
         layer?.borderWidth = isRecording ? 1 : 0
         layer?.borderColor = NSColor.keyboardFocusIndicatorColor.cgColor
     }

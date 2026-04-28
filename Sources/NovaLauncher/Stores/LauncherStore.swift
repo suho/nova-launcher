@@ -4,6 +4,7 @@ import Foundation
 final class LauncherStore: ObservableObject {
     @Published private(set) var applications: [ApplicationEntry] = []
     @Published private(set) var filteredItems: [LauncherItem] = []
+    @Published private(set) var itemConfigurations = LauncherItemConfigurationPersistence.load()
     @Published private(set) var isIndexing = false
     @Published var query = "" {
         didSet {
@@ -25,6 +26,7 @@ final class LauncherStore: ObservableObject {
     private let windowManager = WindowManagementService()
     private var focusedWindow: FocusedWindowContext?
     private let windowCommands = WindowCommand.allCases
+    var onItemConfigurationsChanged: (() -> Void)?
 
     init() {
         Task {
@@ -58,6 +60,7 @@ final class LauncherStore: ObservableObject {
         applications = indexedApplications
         updateFilteredItems()
         isIndexing = false
+        onItemConfigurationsChanged?()
 
         Task.detached(priority: .utility) {
             await ApplicationIconCache.shared.preload(Array(indexedApplications.prefix(80)))
@@ -110,6 +113,53 @@ final class LauncherStore: ObservableObject {
         open(application, itemID: LauncherItem.application(application).id, completion: completion)
     }
 
+    func openFromHotKey(_ item: LauncherItem) {
+        switch item {
+        case .application(let application):
+            open(application, itemID: item.id, completion: {})
+        case .windowCommand(let command):
+            let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: true)
+            let window = hasWindowAccess
+                ? windowManager.captureFocusedWindow(promptForAccessibility: false)
+                : nil
+
+            focusedWindow = window
+            focusedWindowDescription = window?.displayName
+            windowCommandUnavailableReason = hasWindowAccess
+                ? "Focus a window before using this shortcut"
+                : "Grant Accessibility permission, then try again"
+            perform(command, itemID: item.id, context: window, completion: {})
+        }
+    }
+
+    func configuration(for item: LauncherItem) -> LauncherItemConfiguration {
+        itemConfigurations[item.id] ?? .default
+    }
+
+    func setEnabled(_ isEnabled: Bool, for item: LauncherItem) {
+        var configuration = configuration(for: item)
+        configuration.isEnabled = isEnabled
+        saveConfiguration(configuration, for: item.id)
+        updateFilteredItems()
+    }
+
+    func setShortcut(_ shortcut: KeyboardShortcut?, for item: LauncherItem) {
+        var configuration = configuration(for: item)
+        configuration.shortcut = shortcut
+        saveConfiguration(configuration, for: item.id)
+        onItemConfigurationsChanged?()
+    }
+
+    func configuredHotKeyItems() -> [(item: LauncherItem, shortcut: KeyboardShortcut)] {
+        allItems.compactMap { item in
+            guard let shortcut = configuration(for: item).shortcut else {
+                return nil
+            }
+
+            return (item, shortcut)
+        }
+    }
+
     func subtitle(for item: LauncherItem) -> String {
         switch item {
         case .application:
@@ -154,10 +204,19 @@ final class LauncherStore: ObservableObject {
     }
 
     private func perform(_ command: WindowCommand, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
+        perform(command, itemID: itemID, context: focusedWindow, completion: completion)
+    }
+
+    private func perform(
+        _ command: WindowCommand,
+        itemID: LauncherItem.ID,
+        context: FocusedWindowContext?,
+        completion: @escaping () -> Void
+    ) {
         openingID = itemID
 
         do {
-            statusMessage = try windowManager.perform(command, on: focusedWindow)
+            statusMessage = try windowManager.perform(command, on: context)
             query = ""
             selectedID = nil
             completion()
@@ -169,11 +228,35 @@ final class LauncherStore: ObservableObject {
     }
 
     private func updateFilteredItems() {
-        filteredItems = FuzzyMatcher.match(query: query, in: allItems, limit: 8)
+        filteredItems = FuzzyMatcher.match(query: query, in: searchableItems, limit: 8)
         selectedID = filteredItems.first?.id
+    }
+
+    private func saveConfiguration(_ configuration: LauncherItemConfiguration, for itemID: LauncherItem.ID) {
+        if configuration.isDefault {
+            itemConfigurations.removeValue(forKey: itemID)
+        } else {
+            itemConfigurations[itemID] = configuration
+        }
+
+        LauncherItemConfigurationPersistence.save(itemConfigurations)
+    }
+
+    private var searchableItems: [LauncherItem] {
+        allItems.filter { item in
+            configuration(for: item).isEnabled
+        }
     }
 
     private var allItems: [LauncherItem] {
         windowCommands.map(LauncherItem.windowCommand) + applications.map(LauncherItem.application)
+    }
+
+    var applicationItems: [LauncherItem] {
+        applications.map(LauncherItem.application)
+    }
+
+    var commandItems: [LauncherItem] {
+        windowCommands.map(LauncherItem.windowCommand)
     }
 }
