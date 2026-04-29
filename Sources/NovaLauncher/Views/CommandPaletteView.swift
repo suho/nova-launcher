@@ -7,6 +7,7 @@ struct CommandPaletteView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("appearance.theme") private var themeRawValue = AppTheme.system.rawValue
+    @Namespace private var glassNamespace
 
     var body: some View {
         GlassEffectContainer(spacing: CommandPaletteMetrics.panelSpacing) {
@@ -72,7 +73,7 @@ struct CommandPaletteView: View {
         .padding(.top, 2)
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.searchBarHeight)
         .glassEffect(.regular.interactive(), in: paletteShape)
-        .clipShape(paletteShape)
+        .glassEffectID("command-palette-search", in: glassNamespace)
         .shadow(
             color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
             radius: colorScheme == .dark ? 30 : 34,
@@ -97,8 +98,8 @@ struct CommandPaletteView: View {
             footer
         }
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.resultsPanelHeight)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassEffect(.regular.interactive(), in: resultsPanelShape)
+        .glassEffectID("command-palette-results", in: glassNamespace)
         .shadow(
             color: .black.opacity(colorScheme == .dark ? 0.10 : 0.03),
             radius: colorScheme == .dark ? 28 : 32,
@@ -111,6 +112,10 @@ struct CommandPaletteView: View {
             x: 0,
             y: colorScheme == .dark ? 4 : 3
         )
+    }
+
+    private var resultsPanelShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
     }
 
     @ViewBuilder
