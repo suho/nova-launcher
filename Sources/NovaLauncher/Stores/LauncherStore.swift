@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class LauncherStore: ObservableObject {
     @Published private(set) var applications: [ApplicationEntry] = []
+    @Published private(set) var applicationItems: [LauncherItem] = []
     @Published private(set) var filteredItems: [LauncherItem] = []
     @Published private(set) var itemConfigurations = LauncherItemConfigurationPersistence.load()
     @Published private(set) var isIndexing = false
@@ -25,7 +26,7 @@ final class LauncherStore: ObservableObject {
     private let launcher = ApplicationLauncher()
     private let windowManager = WindowManagementService()
     private var focusedWindow: FocusedWindowContext?
-    private let windowCommands = WindowCommand.allCases
+    let commandItems = WindowCommand.allCases.map(LauncherItem.windowCommand)
     var onItemConfigurationsChanged: (() -> Void)?
 
     init() {
@@ -58,12 +59,13 @@ final class LauncherStore: ObservableObject {
         isIndexing = true
         let indexedApplications = await indexer.indexApplications()
         applications = indexedApplications
+        applicationItems = indexedApplications.map(LauncherItem.application)
         updateFilteredItems()
         isIndexing = false
         onItemConfigurationsChanged?()
 
         Task.detached(priority: .utility) {
-            await ApplicationIconCache.shared.preload(Array(indexedApplications.prefix(80)))
+            await ApplicationIconCache.shared.preload(indexedApplications)
         }
     }
 
@@ -249,14 +251,6 @@ final class LauncherStore: ObservableObject {
     }
 
     private var allItems: [LauncherItem] {
-        windowCommands.map(LauncherItem.windowCommand) + applications.map(LauncherItem.application)
-    }
-
-    var applicationItems: [LauncherItem] {
-        applications.map(LauncherItem.application)
-    }
-
-    var commandItems: [LauncherItem] {
-        windowCommands.map(LauncherItem.windowCommand)
+        commandItems + applicationItems
     }
 }

@@ -6,6 +6,8 @@ struct KeyboardShortcutRecorder: NSViewRepresentable {
     @Binding private var shortcut: KeyboardShortcut?
     private let placeholder: String
     private let allowsClearing: Bool
+    private let startsRecordingOnAppear: Bool
+    private let onRecordingEnded: (() -> Void)?
 
     init(shortcut: Binding<KeyboardShortcut>) {
         _shortcut = Binding<KeyboardShortcut?>(
@@ -20,12 +22,21 @@ struct KeyboardShortcutRecorder: NSViewRepresentable {
         )
         placeholder = "Set Shortcut"
         allowsClearing = false
+        startsRecordingOnAppear = false
+        onRecordingEnded = nil
     }
 
-    init(optionalShortcut: Binding<KeyboardShortcut?>, placeholder: String = "Set Shortcut") {
+    init(
+        optionalShortcut: Binding<KeyboardShortcut?>,
+        placeholder: String = "Set Shortcut",
+        startsRecordingOnAppear: Bool = false,
+        onRecordingEnded: (() -> Void)? = nil
+    ) {
         _shortcut = optionalShortcut
         self.placeholder = placeholder
         allowsClearing = true
+        self.startsRecordingOnAppear = startsRecordingOnAppear
+        self.onRecordingEnded = onRecordingEnded
     }
 
     func makeNSView(context: Context) -> ShortcutRecorderControl {
@@ -33,6 +44,8 @@ struct KeyboardShortcutRecorder: NSViewRepresentable {
         control.shortcut = shortcut
         control.placeholder = placeholder
         control.allowsClearing = allowsClearing
+        control.startsRecordingOnAppear = startsRecordingOnAppear
+        control.onRecordingEnded = onRecordingEnded
         control.onChange = { shortcut in
             self.shortcut = shortcut
         }
@@ -43,7 +56,10 @@ struct KeyboardShortcutRecorder: NSViewRepresentable {
         nsView.shortcut = shortcut
         nsView.placeholder = placeholder
         nsView.allowsClearing = allowsClearing
+        nsView.startsRecordingOnAppear = startsRecordingOnAppear
+        nsView.onRecordingEnded = onRecordingEnded
         nsView.updateLabel()
+        nsView.startRecordingOnAppearIfNeeded()
     }
 }
 
@@ -61,10 +77,19 @@ final class ShortcutRecorderControl: NSView {
     }
 
     var allowsClearing = false
+    var startsRecordingOnAppear = false {
+        didSet {
+            if !startsRecordingOnAppear {
+                didStartRecordingOnAppear = false
+            }
+        }
+    }
     var onChange: ((KeyboardShortcut?) -> Void)?
+    var onRecordingEnded: (() -> Void)?
 
     private let label = NSTextField(labelWithString: "")
     private var isRecording = false
+    private var didStartRecordingOnAppear = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -98,30 +123,26 @@ final class ShortcutRecorderControl: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        isRecording = true
-        window?.makeFirstResponder(self)
-        updateLabel()
+        didStartRecordingOnAppear = true
+        beginRecording()
     }
 
     override func resignFirstResponder() -> Bool {
-        isRecording = false
-        updateLabel()
+        finishRecording()
         return super.resignFirstResponder()
     }
 
     override func keyDown(with event: NSEvent) {
         if Int(event.keyCode) == kVK_Escape {
-            isRecording = false
-            updateLabel()
+            finishRecording()
             return
         }
 
         if allowsClearing,
            Int(event.keyCode) == kVK_Delete || Int(event.keyCode) == kVK_ForwardDelete {
             shortcut = nil
-            isRecording = false
             onChange?(nil)
-            updateLabel()
+            finishRecording()
             return
         }
 
@@ -138,9 +159,22 @@ final class ShortcutRecorderControl: NSView {
         )
 
         shortcut = newShortcut
-        isRecording = false
         onChange?(newShortcut)
-        updateLabel()
+        finishRecording()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        startRecordingOnAppearIfNeeded()
+    }
+
+    func startRecordingOnAppearIfNeeded() {
+        guard startsRecordingOnAppear, window != nil, !didStartRecordingOnAppear else {
+            return
+        }
+
+        didStartRecordingOnAppear = true
+        beginRecording()
     }
 
     func updateLabel() {
@@ -148,5 +182,25 @@ final class ShortcutRecorderControl: NSView {
         label.textColor = shortcut == nil ? .secondaryLabelColor : .labelColor
         layer?.borderWidth = isRecording ? 1 : 0
         layer?.borderColor = NSColor.keyboardFocusIndicatorColor.cgColor
+    }
+
+    private func beginRecording() {
+        isRecording = true
+        window?.makeFirstResponder(self)
+        updateLabel()
+    }
+
+    private func finishRecording() {
+        let wasRecording = isRecording
+        isRecording = false
+        updateLabel()
+
+        guard wasRecording else {
+            return
+        }
+
+        DispatchQueue.main.async { [onRecordingEnded] in
+            onRecordingEnded?()
+        }
     }
 }

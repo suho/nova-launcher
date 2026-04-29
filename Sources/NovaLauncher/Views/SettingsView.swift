@@ -10,6 +10,7 @@ struct SettingsView: View {
     @AppStorage(KeyboardShortcut.keyCodeDefaultsKey) private var shortcutKeyCode = Int(KeyboardShortcut.defaultShortcut.keyCode)
     @AppStorage(KeyboardShortcut.modifiersDefaultsKey) private var shortcutModifiers = Int(KeyboardShortcut.defaultShortcut.modifiers)
     @State private var accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
+    @State private var recordingItemID: LauncherItem.ID?
 
     var body: some View {
         TabView {
@@ -224,42 +225,45 @@ struct SettingsView: View {
     private func itemConfigurationRow(for item: LauncherItem) -> some View {
         ItemConfigurationRow(
             item: item,
-            isEnabled: enabledBinding(for: item),
-            shortcut: itemShortcutBinding(for: item)
-        )
-    }
-
-    private func enabledBinding(for item: LauncherItem) -> Binding<Bool> {
-        Binding(
-            get: {
-                store.configuration(for: item).isEnabled
+            configuration: store.configuration(for: item),
+            isRecordingShortcut: recordingItemID == item.id,
+            onBeginRecording: {
+                recordingItemID = item.id
             },
-            set: { isEnabled in
+            onEndRecording: {
+                if recordingItemID == item.id {
+                    recordingItemID = nil
+                }
+            },
+            onEnabledChange: { isEnabled in
                 store.setEnabled(isEnabled, for: item)
-            }
-        )
-    }
-
-    private func itemShortcutBinding(for item: LauncherItem) -> Binding<KeyboardShortcut?> {
-        Binding(
-            get: {
-                store.configuration(for: item).shortcut
             },
-            set: { shortcut in
+            onShortcutChange: { shortcut in
                 store.setShortcut(shortcut, for: item)
             }
         )
+        .equatable()
     }
 }
 
-private struct ItemConfigurationRow: View {
+private struct ItemConfigurationRow: View, Equatable {
     let item: LauncherItem
-    @Binding var isEnabled: Bool
-    @Binding var shortcut: KeyboardShortcut?
+    let configuration: LauncherItemConfiguration
+    let isRecordingShortcut: Bool
+    let onBeginRecording: () -> Void
+    let onEndRecording: () -> Void
+    let onEnabledChange: (Bool) -> Void
+    let onShortcutChange: (KeyboardShortcut?) -> Void
+
+    static func == (lhs: ItemConfigurationRow, rhs: ItemConfigurationRow) -> Bool {
+        lhs.item == rhs.item
+            && lhs.configuration == rhs.configuration
+            && lhs.isRecordingShortcut == rhs.isRecordingShortcut
+    }
 
     var body: some View {
         HStack(spacing: 12) {
-            Toggle("Enabled", isOn: $isEnabled)
+            Toggle("Enabled", isOn: enabledBinding)
                 .labelsHidden()
                 .help("Enabled")
 
@@ -278,19 +282,53 @@ private struct ItemConfigurationRow: View {
 
             Spacer(minLength: 16)
 
-            KeyboardShortcutRecorder(optionalShortcut: $shortcut, placeholder: "None")
-                .frame(width: 142, height: 30)
+            shortcutEditor
 
             Button {
-                shortcut = nil
+                onShortcutChange(nil)
+                onEndRecording()
             } label: {
                 Image(systemName: "xmark.circle")
             }
             .buttonStyle(.borderless)
-            .disabled(shortcut == nil)
+            .disabled(configuration.shortcut == nil)
             .help("Clear Hotkey")
         }
         .padding(.vertical, 4)
+    }
+
+    private var enabledBinding: Binding<Bool> {
+        Binding(
+            get: {
+                configuration.isEnabled
+            },
+            set: onEnabledChange
+        )
+    }
+
+    private var shortcutBinding: Binding<KeyboardShortcut?> {
+        Binding(
+            get: {
+                configuration.shortcut
+            },
+            set: onShortcutChange
+        )
+    }
+
+    @ViewBuilder
+    private var shortcutEditor: some View {
+        if isRecordingShortcut {
+            KeyboardShortcutRecorder(
+                optionalShortcut: shortcutBinding,
+                placeholder: "None",
+                startsRecordingOnAppear: true,
+                onRecordingEnded: onEndRecording
+            )
+            .frame(width: 142, height: 30)
+        } else {
+            ShortcutDisplayButton(shortcut: configuration.shortcut, action: onBeginRecording)
+                .frame(width: 142, height: 30)
+        }
     }
 
     @ViewBuilder
@@ -310,5 +348,27 @@ private struct ItemConfigurationRow: View {
             }
             .frame(width: 28, height: 28)
         }
+    }
+}
+
+private struct ShortcutDisplayButton: View {
+    let shortcut: KeyboardShortcut?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(shortcut?.displayString ?? "None")
+                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .foregroundStyle(shortcut == nil ? .secondary : .primary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .frame(height: 30)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                }
+        }
+        .buttonStyle(.plain)
+        .help("Record Hotkey")
     }
 }
