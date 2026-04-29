@@ -4,6 +4,7 @@ struct AppResultRow: View {
     let item: LauncherItem
     let subtitle: String
     let isSelected: Bool
+    let isRunning: Bool
     let isOpening: Bool
 
     var body: some View {
@@ -40,6 +41,15 @@ struct AppResultRow: View {
         switch item {
         case .application(let application):
             AppIconView(url: application.url, size: 36)
+                .overlay(alignment: .bottom) {
+                    if isRunning {
+                        Circle()
+                            .fill(.primary.opacity(0.58))
+                            .frame(width: 5, height: 5)
+                            .offset(y: 6)
+                    }
+                }
+                .frame(width: 36, height: 42)
         case .windowCommand(let command):
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)

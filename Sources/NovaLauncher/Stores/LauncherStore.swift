@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @MainActor
@@ -6,6 +7,7 @@ final class LauncherStore: ObservableObject {
     @Published private(set) var applicationItems: [LauncherItem] = []
     @Published private(set) var filteredItems: [LauncherItem] = []
     @Published private(set) var itemConfigurations = LauncherItemConfigurationPersistence.load()
+    @Published private(set) var runningApplicationIDs = Set<LauncherItem.ID>()
     @Published private(set) var isIndexing = false
     @Published var query = "" {
         didSet {
@@ -25,17 +27,31 @@ final class LauncherStore: ObservableObject {
     private let indexer = ApplicationIndexer()
     private let launcher = ApplicationLauncher()
     private let windowManager = WindowManagementService()
+    private var workspaceObservers: [NSObjectProtocol] = []
     private var focusedWindow: FocusedWindowContext?
     let commandItems = WindowCommand.allCases.map(LauncherItem.windowCommand)
     var onItemConfigurationsChanged: (() -> Void)?
 
     init() {
+        observeWorkspaceApplications()
+        refreshRunningApplications()
+
         Task {
             await refreshApplications()
         }
     }
 
+    deinit {
+        let notificationCenter = NSWorkspace.shared.notificationCenter
+
+        for observer in workspaceObservers {
+            notificationCenter.removeObserver(observer)
+        }
+    }
+
     func beginPaletteSession() {
+        refreshRunningApplications()
+
         let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: true)
         focusedWindow = hasWindowAccess
             ? windowManager.captureFocusedWindow(promptForAccessibility: false)
@@ -60,6 +76,7 @@ final class LauncherStore: ObservableObject {
         let indexedApplications = await indexer.indexApplications()
         applications = indexedApplications
         applicationItems = indexedApplications.map(LauncherItem.application)
+        refreshRunningApplications()
         updateFilteredItems()
         isIndexing = false
         onItemConfigurationsChanged?()
@@ -184,6 +201,10 @@ final class LauncherStore: ObservableObject {
         }
     }
 
+    func isRunning(_ item: LauncherItem) -> Bool {
+        runningApplicationIDs.contains(item.id)
+    }
+
     private func open(_ application: ApplicationEntry, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
         openingID = itemID
         statusMessage = "Opening \(application.name)"
@@ -252,5 +273,50 @@ final class LauncherStore: ObservableObject {
 
     private var allItems: [LauncherItem] {
         commandItems + applicationItems
+    }
+
+    private func observeWorkspaceApplications() {
+        let notificationCenter = NSWorkspace.shared.notificationCenter
+        let notifications = [
+            NSWorkspace.didLaunchApplicationNotification,
+            NSWorkspace.didTerminateApplicationNotification
+        ]
+
+        workspaceObservers = notifications.map { notification in
+            notificationCenter.addObserver(forName: notification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshRunningApplications()
+                }
+            }
+        }
+    }
+
+    private func refreshRunningApplications() {
+        let runningApplications = NSWorkspace.shared.runningApplications
+        runningApplicationIDs = Set(applications.compactMap { application in
+            guard Self.isApplication(application, runningIn: runningApplications) else {
+                return nil
+            }
+
+            return LauncherItem.application(application).id
+        })
+    }
+
+    private static func isApplication(
+        _ application: ApplicationEntry,
+        runningIn runningApplications: [NSRunningApplication]
+    ) -> Bool {
+        runningApplications.contains { runningApplication in
+            if let bundleIdentifier = application.bundleIdentifier,
+               runningApplication.bundleIdentifier == bundleIdentifier {
+                return true
+            }
+
+            guard let bundleURL = runningApplication.bundleURL else {
+                return false
+            }
+
+            return bundleURL.standardizedFileURL == application.url.standardizedFileURL
+        }
     }
 }
