@@ -3,6 +3,12 @@
 A macOS-first productivity launcher inspired by Raycast. The first version
 focuses on local app launching through a keyboard-first command palette.
 
+## Screenshots
+
+![Nova Launcher command palette search](docs/screenshots/command-palette-search.png)
+
+![Nova Launcher settings items shortcuts](docs/screenshots/settings-items-shortcuts.png)
+
 ## Features
 
 - Option-Space global launcher hotkey
