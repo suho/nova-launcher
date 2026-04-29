@@ -21,7 +21,7 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
 
     func show() {
         if let panel, panel.isVisible {
-            panel.makeKeyAndOrderFront(nil)
+            present(panel)
             return
         }
 
@@ -41,7 +41,7 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         hostingView.autoresizingMask = [.width, .height]
         let panel = CommandPanel(
             contentRect: NSRect(origin: .zero, size: initialSize),
-            styleMask: [.borderless, .fullSizeContentView],
+            styleMask: [.borderless, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -52,6 +52,8 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
         panel.level = .floating
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient]
         panel.titleVisibility = .hidden
@@ -61,8 +63,7 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         center(panel)
 
         self.panel = panel
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
+        present(panel)
     }
 
     func close() {
@@ -83,6 +84,11 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         )
 
         panel.setFrameOrigin(origin)
+    }
+
+    private func present(_ panel: NSPanel) {
+        panel.orderFrontRegardless()
+        panel.makeKey()
     }
 
     private func setPaletteExpanded(_ isExpanded: Bool, animated: Bool) {
@@ -113,6 +119,6 @@ final class CommandPanel: NSPanel {
     }
 
     override var canBecomeMain: Bool {
-        true
+        false
     }
 }
