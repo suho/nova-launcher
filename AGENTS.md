@@ -1,12 +1,5 @@
 # Nova Launcher Agent Guide
 
-## Operating Rules
-
-- After each code or documentation change, commit and push the change.
-- After each app change, run `./script/build_and_run.sh --verify` to check that the app builds and launches.
-- Do not revert user changes unless the user explicitly asks for that.
-- Check `git status --short --branch` before editing and before committing.
-
 ## Project Context
 
 Nova Launcher is a macOS-first SwiftUI productivity launcher inspired by
@@ -64,5 +57,7 @@ searching, and launching local applications.
 
 ## Git Workflow
 
+- Check `git status --short --branch` before editing and before committing.
 - Keep commits focused on the requested change.
-- Push the branch after each required commit.
+- Commit and push after each code or documentation change.
+- Do not revert user changes unless the user explicitly asks for that.
