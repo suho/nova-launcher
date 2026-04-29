@@ -5,6 +5,7 @@ struct AppResultRow: View {
     let subtitle: String
     let isSelected: Bool
     let isRunning: Bool
+    let shortcut: KeyboardShortcut?
     let isOpening: Bool
 
     var body: some View {
@@ -24,6 +25,10 @@ struct AppResultRow: View {
             }
 
             Spacer(minLength: 12)
+
+            if let shortcut {
+                shortcutLabel(shortcut)
+            }
 
             if isOpening {
                 ProgressView()
@@ -70,5 +75,14 @@ struct AppResultRow: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(.primary.opacity(0.1))
         }
+    }
+
+    private func shortcutLabel(_ shortcut: KeyboardShortcut) -> some View {
+        Text(shortcut.displayString)
+            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityLabel("Shortcut \(shortcut.displayString)")
     }
 }

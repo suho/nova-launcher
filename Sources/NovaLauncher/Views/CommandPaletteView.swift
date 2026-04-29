@@ -137,6 +137,7 @@ struct CommandPaletteView: View {
                             subtitle: store.subtitle(for: item),
                             isSelected: item.id == store.selectedID,
                             isRunning: store.isRunning(item),
+                            shortcut: store.configuration(for: item).shortcut,
                             isOpening: item.id == store.openingID
                         )
                         .id(item.id)
