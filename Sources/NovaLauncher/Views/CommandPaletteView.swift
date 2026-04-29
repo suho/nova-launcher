@@ -50,30 +50,36 @@ struct CommandPaletteView: View {
     }
 
     private var searchHeader: some View {
-        HStack {
-            CommandSearchField(
-                text: $store.query,
-                placeholder: "Search apps and commands",
-                onMove: { direction in
-                    switch direction {
-                    case .up:
-                        store.moveSelection(by: -1)
-                    case .down:
-                        store.moveSelection(by: 1)
-                    }
-                },
-                onSubmit: {
-                    store.openSelected(completion: dismiss)
-                },
-                onEscape: dismiss
-            )
-            .frame(height: 38)
+        ZStack {
+            paletteShape
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: paletteShape)
+                .glassEffectID("command-palette-search", in: glassNamespace)
+
+            HStack {
+                CommandSearchField(
+                    text: $store.query,
+                    placeholder: "Search apps and commands",
+                    onMove: { direction in
+                        switch direction {
+                        case .up:
+                            store.moveSelection(by: -1)
+                        case .down:
+                            store.moveSelection(by: 1)
+                        }
+                    },
+                    onSubmit: {
+                        store.openSelected(completion: dismiss)
+                    },
+                    onEscape: dismiss
+                )
+                .frame(height: 38)
+            }
+            .padding(.horizontal, 26)
+            .padding(.top, 2)
         }
-        .padding(.horizontal, 26)
-        .padding(.top, 2)
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.searchBarHeight)
-        .glassEffect(.regular.interactive(), in: paletteShape)
-        .glassEffectID("command-palette-search", in: glassNamespace)
+        .contentShape(paletteShape)
         .shadow(
             color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
             radius: colorScheme == .dark ? 30 : 34,
@@ -89,17 +95,23 @@ struct CommandPaletteView: View {
     }
 
     private var resultsPanel: some View {
-        VStack(spacing: 0) {
-            resultsContent
+        ZStack {
+            resultsPanelShape
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: resultsPanelShape)
+                .glassEffectID("command-palette-results", in: glassNamespace)
 
-            Divider()
-                .opacity(0.35)
+            VStack(spacing: 0) {
+                resultsContent
 
-            footer
+                Divider()
+                    .opacity(0.35)
+
+                footer
+            }
         }
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.resultsPanelHeight)
-        .glassEffect(.regular.interactive(), in: resultsPanelShape)
-        .glassEffectID("command-palette-results", in: glassNamespace)
+        .contentShape(resultsPanelShape)
         .shadow(
             color: .black.opacity(colorScheme == .dark ? 0.10 : 0.03),
             radius: colorScheme == .dark ? 28 : 32,
@@ -146,6 +158,8 @@ struct CommandPaletteView: View {
                 }
                 .padding(10)
             }
+            .background(.clear)
+            .scrollContentBackground(.hidden)
             .onChange(of: store.selectedID) { _, selectedID in
                 guard let selectedID else {
                     return

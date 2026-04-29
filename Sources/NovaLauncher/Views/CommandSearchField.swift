@@ -20,6 +20,7 @@ struct CommandSearchField: NSViewRepresentable {
         textField.delegate = context.coordinator
         textField.isBordered = false
         textField.drawsBackground = false
+        textField.backgroundColor = .clear
         textField.focusRingType = .none
         textField.font = .systemFont(ofSize: 23, weight: .medium)
         textField.textColor = .labelColor
@@ -77,10 +78,25 @@ struct CommandSearchField: NSViewRepresentable {
                 return
             }
 
+            if let textView = textField.currentEditor() as? NSTextView {
+                configureFieldEditor(textView)
+            }
+
             text = textField.stringValue
         }
 
+        func controlTextDidBeginEditing(_ notification: Notification) {
+            guard let textField = notification.object as? NSTextField,
+                  let textView = textField.currentEditor() as? NSTextView else {
+                return
+            }
+
+            configureFieldEditor(textView)
+        }
+
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            configureFieldEditor(textView)
+
             switch commandSelector {
             case #selector(NSResponder.moveUp(_:)):
                 onMove?(.up)
@@ -98,12 +114,26 @@ struct CommandSearchField: NSViewRepresentable {
                 return false
             }
         }
+
+        private func configureFieldEditor(_ textView: NSTextView) {
+            textView.drawsBackground = false
+            textView.backgroundColor = .clear
+            textView.insertionPointColor = .labelColor
+        }
     }
 }
 
 final class SearchFieldHostView: NSView {
     let textField = KeyHandlingTextField()
     private var didRequestInitialFocus = false
+
+    override var isOpaque: Bool {
+        false
+    }
+
+    override var allowsVibrancy: Bool {
+        true
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -147,6 +177,14 @@ final class SearchFieldHostView: NSView {
 }
 
 final class KeyHandlingTextField: NSTextField {
+    override var isOpaque: Bool {
+        false
+    }
+
+    override var allowsVibrancy: Bool {
+        true
+    }
+
     override var intrinsicContentSize: NSSize {
         NSSize(width: NSView.noIntrinsicMetric, height: 36)
     }
