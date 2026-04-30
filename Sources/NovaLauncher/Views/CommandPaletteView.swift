@@ -58,7 +58,15 @@ struct CommandPaletteView: View {
     }
 
     private var paletteGlass: Glass {
-        .clear.interactive()
+        .clear
+            .tint(paletteSurfaceTint)
+            .interactive()
+    }
+
+    private var paletteSurfaceTint: Color {
+        activeColorScheme == .dark
+            ? .black.opacity(0.34)
+            : .white.opacity(0.16)
     }
 
     private var searchHeader: some View {
