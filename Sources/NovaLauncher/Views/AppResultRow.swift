@@ -8,6 +8,8 @@ struct AppResultRow: View {
     let shortcut: KeyboardShortcut?
     let isOpening: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         HStack(spacing: 12) {
             icon
@@ -73,8 +75,20 @@ struct AppResultRow: View {
     private var selectionBackground: some View {
         if isSelected {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.primary.opacity(0.1))
+                .fill(selectionFillColor)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(selectionStrokeColor, lineWidth: 1)
+                }
         }
+    }
+
+    private var selectionFillColor: Color {
+        Color.accentColor.opacity(colorScheme == .dark ? 0.34 : 0.18)
+    }
+
+    private var selectionStrokeColor: Color {
+        Color.accentColor.opacity(colorScheme == .dark ? 0.72 : 0.46)
     }
 
     private func shortcutLabel(_ shortcut: KeyboardShortcut) -> some View {
