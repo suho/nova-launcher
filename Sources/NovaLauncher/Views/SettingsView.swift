@@ -166,7 +166,7 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted(promptForPermission: true)
+                        refreshAccessibilityPermission()
                     } label: {
                         Label("Check Again", systemImage: "arrow.clockwise")
                     }
