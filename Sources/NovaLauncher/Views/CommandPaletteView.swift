@@ -49,6 +49,10 @@ struct CommandPaletteView: View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
     }
 
+    private var paletteGlass: Glass {
+        .clear.interactive()
+    }
+
     private var searchHeader: some View {
         HStack {
             CommandSearchField(
@@ -72,7 +76,7 @@ struct CommandPaletteView: View {
         .padding(.horizontal, 26)
         .padding(.top, 2)
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.searchBarHeight)
-        .glassEffect(.regular.interactive(), in: paletteShape)
+        .glassEffect(paletteGlass, in: paletteShape)
         .glassEffectID("command-palette-search", in: glassNamespace)
         .shadow(
             color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
@@ -98,7 +102,7 @@ struct CommandPaletteView: View {
             footer
         }
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.resultsPanelHeight)
-        .glassEffect(.regular.interactive(), in: resultsPanelShape)
+        .glassEffect(paletteGlass, in: resultsPanelShape)
         .glassEffectID("command-palette-results", in: glassNamespace)
         .shadow(
             color: .black.opacity(colorScheme == .dark ? 0.10 : 0.03),
