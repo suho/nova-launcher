@@ -23,6 +23,7 @@ final class LauncherStore: ObservableObject {
     @Published var statusMessage: String?
     @Published private(set) var focusedWindowDescription: String?
     @Published private(set) var windowCommandUnavailableReason = "Focus a window before opening Nova"
+    @Published private(set) var shouldKeepPaletteOpenForAccessibilityRequest = false
 
     private let indexer = ApplicationIndexer()
     private let launcher = ApplicationLauncher()
@@ -56,6 +57,7 @@ final class LauncherStore: ObservableObject {
         focusedWindow = nil
         focusedWindowDescription = nil
         windowCommandUnavailableReason = "Checking focused window"
+        shouldKeepPaletteOpenForAccessibilityRequest = false
 
         if applications.isEmpty {
             Task {
@@ -69,8 +71,13 @@ final class LauncherStore: ObservableObject {
 
         refreshFocusedWindowContext(
             noWindowReason: "Focus a window before opening Nova",
-            noPermissionReason: "Grant Accessibility permission, then reopen Nova"
+            noPermissionReason: "Use this command to request Accessibility permission",
+            promptForAccessibility: false
         )
+    }
+
+    func endPaletteSession() {
+        shouldKeepPaletteOpenForAccessibilityRequest = false
     }
 
     func refreshApplications() async {
@@ -139,12 +146,14 @@ final class LauncherStore: ObservableObject {
         case .application(let application):
             open(application, itemID: item.id, completion: {})
         case .windowCommand(let command):
-            let window = refreshFocusedWindowContext(
+            perform(
+                command,
+                itemID: item.id,
+                context: nil,
                 noWindowReason: "Focus a window before using this shortcut",
-                noPermissionReason: "Grant Accessibility permission, then try again"
+                noPermissionReason: "Grant Accessibility permission, then try again",
+                completion: {}
             )
-
-            perform(command, itemID: item.id, context: window, completion: {})
         }
     }
 
@@ -231,13 +240,32 @@ final class LauncherStore: ObservableObject {
         _ command: WindowCommand,
         itemID: LauncherItem.ID,
         context: FocusedWindowContext?,
+        noWindowReason: String = "Focus a window before opening Nova",
+        noPermissionReason: String = "Grant Accessibility permission, then try again",
         completion: @escaping () -> Void
     ) {
         openingID = itemID
+
+        guard requestAccessibilityForWindowCommand() else {
+            focusedWindow = nil
+            focusedWindowDescription = nil
+            windowCommandUnavailableReason = noPermissionReason
+            statusMessage = noPermissionReason
+            openingID = nil
+            return
+        }
+
         let commandContext = context ?? refreshFocusedWindowContext(
-            noWindowReason: "Focus a window before opening Nova",
-            noPermissionReason: "Grant Accessibility permission, then reopen Nova"
+            noWindowReason: noWindowReason,
+            noPermissionReason: noPermissionReason,
+            promptForAccessibility: false
         )
+
+        guard let commandContext else {
+            statusMessage = noWindowReason
+            openingID = nil
+            return
+        }
 
         do {
             statusMessage = try windowManager.perform(command, on: commandContext)
@@ -259,9 +287,10 @@ final class LauncherStore: ObservableObject {
     @discardableResult
     private func refreshFocusedWindowContext(
         noWindowReason: String,
-        noPermissionReason: String
+        noPermissionReason: String,
+        promptForAccessibility: Bool
     ) -> FocusedWindowContext? {
-        let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: true)
+        let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: promptForAccessibility)
         let window = hasWindowAccess
             ? windowManager.captureFocusedWindow(promptForAccessibility: false)
             : nil
@@ -271,6 +300,22 @@ final class LauncherStore: ObservableObject {
         windowCommandUnavailableReason = hasWindowAccess ? noWindowReason : noPermissionReason
 
         return window
+    }
+
+    private func requestAccessibilityForWindowCommand() -> Bool {
+        guard !windowManager.accessibilityTrusted(promptForPermission: false) else {
+            shouldKeepPaletteOpenForAccessibilityRequest = false
+            return true
+        }
+
+        shouldKeepPaletteOpenForAccessibilityRequest = true
+        let isTrusted = windowManager.accessibilityTrusted(promptForPermission: true)
+
+        if isTrusted {
+            shouldKeepPaletteOpenForAccessibilityRequest = false
+        }
+
+        return isTrusted
     }
 
     private func saveConfiguration(_ configuration: LauncherItemConfiguration, for itemID: LauncherItem.ID) {
