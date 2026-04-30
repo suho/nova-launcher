@@ -20,7 +20,7 @@ struct NovaLauncherApp: App {
             .preferredColorScheme(currentTheme.colorScheme)
         }
 
-        MenuBarExtra("Nova", systemImage: "sparkle.magnifyingglass") {
+        MenuBarExtra("Nova", systemImage: "command") {
             MenuBarContentView(
                 store: services.launcherStore,
                 openLauncher: { services.showCommandPalette() }
