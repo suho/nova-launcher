@@ -26,6 +26,7 @@ final class AppServices {
     }
 
     func start() {
+        AppearanceService.apply(rawValue: UserDefaults.standard.string(forKey: "appearance.theme") ?? AppTheme.system.rawValue)
         hotKeyManager.start()
         syncItemHotKeys()
     }

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum AppTheme: String, CaseIterable, Identifiable {
@@ -39,6 +40,17 @@ enum AppTheme: String, CaseIterable, Identifiable {
             .light
         case .dark:
             .dark
+        }
+    }
+
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system:
+            nil
+        case .light:
+            NSAppearance(named: .aqua)
+        case .dark:
+            NSAppearance(named: .darkAqua)
         }
     }
 }

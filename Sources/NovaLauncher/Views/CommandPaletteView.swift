@@ -30,7 +30,11 @@ struct CommandPaletteView: View {
             height: CommandPaletteMetrics.windowSize(isExpanded: isExpanded).height
         )
         .onAppear {
+            AppearanceService.apply(currentTheme)
             onLayoutChange(isExpanded)
+        }
+        .onChange(of: themeRawValue) { _, newValue in
+            AppearanceService.apply(rawValue: newValue)
         }
         .onChange(of: isExpanded) { _, isExpanded in
             onLayoutChange(isExpanded)
@@ -39,6 +43,10 @@ struct CommandPaletteView: View {
 
     private var currentTheme: AppTheme {
         AppTheme(rawValue: themeRawValue) ?? .system
+    }
+
+    private var activeColorScheme: ColorScheme {
+        currentTheme.colorScheme ?? colorScheme
     }
 
     private var isExpanded: Bool {
@@ -58,6 +66,7 @@ struct CommandPaletteView: View {
             CommandSearchField(
                 text: $store.query,
                 placeholder: "Search apps and commands",
+                appearance: currentTheme.nsAppearance,
                 onMove: { direction in
                     switch direction {
                     case .up:
@@ -79,16 +88,16 @@ struct CommandPaletteView: View {
         .glassEffect(paletteGlass, in: paletteShape)
         .glassEffectID("command-palette-search", in: glassNamespace)
         .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
-            radius: colorScheme == .dark ? 30 : 34,
+            color: .black.opacity(activeColorScheme == .dark ? 0.12 : 0.035),
+            radius: activeColorScheme == .dark ? 30 : 34,
             x: 0,
-            y: colorScheme == .dark ? 16 : 14
+            y: activeColorScheme == .dark ? 16 : 14
         )
         .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.08 : 0.025),
-            radius: colorScheme == .dark ? 12 : 18,
+            color: .black.opacity(activeColorScheme == .dark ? 0.08 : 0.025),
+            radius: activeColorScheme == .dark ? 12 : 18,
             x: 0,
-            y: colorScheme == .dark ? 5 : 4
+            y: activeColorScheme == .dark ? 5 : 4
         )
     }
 
@@ -105,16 +114,16 @@ struct CommandPaletteView: View {
         .glassEffect(paletteGlass, in: resultsPanelShape)
         .glassEffectID("command-palette-results", in: glassNamespace)
         .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.10 : 0.03),
-            radius: colorScheme == .dark ? 28 : 32,
+            color: .black.opacity(activeColorScheme == .dark ? 0.10 : 0.03),
+            radius: activeColorScheme == .dark ? 28 : 32,
             x: 0,
-            y: colorScheme == .dark ? 14 : 12
+            y: activeColorScheme == .dark ? 14 : 12
         )
         .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.07 : 0.02),
-            radius: colorScheme == .dark ? 10 : 16,
+            color: .black.opacity(activeColorScheme == .dark ? 0.07 : 0.02),
+            radius: activeColorScheme == .dark ? 10 : 16,
             x: 0,
-            y: colorScheme == .dark ? 4 : 3
+            y: activeColorScheme == .dark ? 4 : 3
         )
     }
 

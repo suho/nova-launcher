@@ -18,6 +18,12 @@ struct NovaLauncherApp: App {
                 hotKeyManager: services.hotKeyManager
             )
             .preferredColorScheme(currentTheme.colorScheme)
+            .onAppear {
+                AppearanceService.apply(currentTheme)
+            }
+            .onChange(of: themeRawValue) { _, newValue in
+                AppearanceService.apply(rawValue: newValue)
+            }
         }
 
         MenuBarExtra("Nova", systemImage: "command") {

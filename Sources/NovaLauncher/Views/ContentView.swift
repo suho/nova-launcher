@@ -26,6 +26,17 @@ struct ContentView: View {
             }
             .background(.background)
         }
+        .preferredColorScheme(currentTheme.colorScheme)
+        .onAppear {
+            AppearanceService.apply(currentTheme)
+        }
+        .onChange(of: themeRawValue) { _, newValue in
+            AppearanceService.apply(rawValue: newValue)
+        }
+    }
+
+    private var currentTheme: AppTheme {
+        AppTheme(rawValue: themeRawValue) ?? .system
     }
 
     @ViewBuilder

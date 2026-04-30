@@ -10,12 +10,14 @@ enum SearchMove {
 struct CommandSearchField: NSViewRepresentable {
     @Binding var text: String
     let placeholder: String
+    let appearance: NSAppearance?
     let onMove: (SearchMove) -> Void
     let onSubmit: () -> Void
     let onEscape: () -> Void
 
     func makeNSView(context: Context) -> SearchFieldHostView {
         let hostView = SearchFieldHostView()
+        hostView.appearance = appearance
         let textField = hostView.textField
         textField.delegate = context.coordinator
         textField.isBordered = false
@@ -37,6 +39,8 @@ struct CommandSearchField: NSViewRepresentable {
 
     func updateNSView(_ nsView: SearchFieldHostView, context: Context) {
         let textField = nsView.textField
+
+        nsView.appearance = appearance
 
         if textField.stringValue != text {
             textField.stringValue = text
