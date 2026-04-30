@@ -50,6 +50,16 @@ struct CommandPaletteView: View {
     }
 
     private var searchHeader: some View {
+        searchHeaderContent
+            .modifier(SearchHeaderSurfaceModifier(
+                isTransparent: isExpanded,
+                colorScheme: colorScheme,
+                glassNamespace: glassNamespace,
+                shape: paletteShape
+            ))
+    }
+
+    private var searchHeaderContent: some View {
         HStack {
             CommandSearchField(
                 text: $store.query,
@@ -72,20 +82,6 @@ struct CommandPaletteView: View {
         .padding(.horizontal, 26)
         .padding(.top, 2)
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.searchBarHeight)
-        .glassEffect(.regular.interactive(), in: paletteShape)
-        .glassEffectID("command-palette-search", in: glassNamespace)
-        .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
-            radius: colorScheme == .dark ? 30 : 34,
-            x: 0,
-            y: colorScheme == .dark ? 16 : 14
-        )
-        .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.08 : 0.025),
-            radius: colorScheme == .dark ? 12 : 18,
-            x: 0,
-            y: colorScheme == .dark ? 5 : 4
-        )
     }
 
     private var resultsPanel: some View {
@@ -98,24 +94,6 @@ struct CommandPaletteView: View {
             footer
         }
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.resultsPanelHeight)
-        .glassEffect(.regular.interactive(), in: resultsPanelShape)
-        .glassEffectID("command-palette-results", in: glassNamespace)
-        .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.10 : 0.03),
-            radius: colorScheme == .dark ? 28 : 32,
-            x: 0,
-            y: colorScheme == .dark ? 14 : 12
-        )
-        .shadow(
-            color: .black.opacity(colorScheme == .dark ? 0.07 : 0.02),
-            radius: colorScheme == .dark ? 10 : 16,
-            x: 0,
-            y: colorScheme == .dark ? 4 : 3
-        )
-    }
-
-    private var resultsPanelShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
     }
 
     @ViewBuilder
@@ -213,5 +191,35 @@ private struct FooterShortcut: View {
                 .font(.caption)
         }
         .foregroundStyle(.secondary)
+    }
+}
+
+private struct SearchHeaderSurfaceModifier: ViewModifier {
+    let isTransparent: Bool
+    let colorScheme: ColorScheme
+    let glassNamespace: Namespace.ID
+    let shape: RoundedRectangle
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isTransparent {
+            content
+        } else {
+            content
+                .glassEffect(.regular.interactive(), in: shape)
+                .glassEffectID("command-palette-search", in: glassNamespace)
+                .shadow(
+                    color: .black.opacity(colorScheme == .dark ? 0.12 : 0.035),
+                    radius: colorScheme == .dark ? 30 : 34,
+                    x: 0,
+                    y: colorScheme == .dark ? 16 : 14
+                )
+                .shadow(
+                    color: .black.opacity(colorScheme == .dark ? 0.08 : 0.025),
+                    radius: colorScheme == .dark ? 12 : 18,
+                    x: 0,
+                    y: colorScheme == .dark ? 5 : 4
+                )
+        }
     }
 }
