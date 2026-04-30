@@ -11,7 +11,9 @@ DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
+APP_ICON_SOURCE="$ROOT_DIR/Resources/AppIcon.icns"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
 cd "$ROOT_DIR"
@@ -26,7 +28,9 @@ build_bundle() {
 
   rm -rf "$APP_BUNDLE"
   mkdir -p "$APP_MACOS"
+  mkdir -p "$APP_RESOURCES"
   cp "$BUILD_BINARY" "$APP_BINARY"
+  cp "$APP_ICON_SOURCE" "$APP_RESOURCES/AppIcon.icns"
   chmod +x "$APP_BINARY"
 
   cat >"$INFO_PLIST" <<PLIST
@@ -42,6 +46,8 @@ build_bundle() {
   <string>$APP_NAME</string>
   <key>CFBundleDisplayName</key>
   <string>Nova Launcher</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon.icns</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>LSMinimumSystemVersion</key>
