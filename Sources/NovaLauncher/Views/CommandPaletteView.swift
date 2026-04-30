@@ -65,8 +65,8 @@ struct CommandPaletteView: View {
 
     private var paletteSurfaceTint: Color {
         activeColorScheme == .dark
-            ? .black.opacity(1.0)
-            : .white.opacity(1.0)
+            ? .black.opacity(0.74)
+            : .white.opacity(0.36)
     }
 
     private var searchHeader: some View {
