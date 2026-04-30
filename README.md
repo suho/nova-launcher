@@ -31,23 +31,33 @@ the app bundle as a foreground macOS application.
 
 ## Install with Homebrew
 
-This private repo includes a Homebrew cask that builds the app locally from the
-`main` branch and installs `NovaLauncher.app`.
+This public repo includes a Homebrew cask that builds the app locally from the
+latest `main` branch and installs `NovaLauncher.app`.
 
 Prerequisites:
 
+- macOS Tahoe 26.0 or newer
 - Homebrew
-- SSH access to `git@github.com:suho/nova-launcher.git`
 - Xcode Command Line Tools with Swift 6.2 or newer
 
-Tap the private repo with its explicit Git URL, then install the cask:
+Tap the repo with its explicit public Git URL, then install the cask:
 
 ```bash
-brew tap suho/nova-launcher git@github.com:suho/nova-launcher.git
+brew tap suho/nova-launcher https://github.com/suho/nova-launcher.git
 brew install --cask suho/nova-launcher/nova-launcher
 ```
 
-Because the cask tracks the latest `main` branch, use `--greedy` when upgrading:
+The explicit URL is required because this repository is named `nova-launcher`
+rather than `homebrew-nova-launcher`.
+
+If you previously tapped the private SSH URL, retap with the public URL first:
+
+```bash
+brew untap suho/nova-launcher
+brew tap suho/nova-launcher https://github.com/suho/nova-launcher.git
+```
+
+Because the cask uses `version :latest`, use `--greedy` when upgrading:
 
 ```bash
 brew upgrade --cask --greedy suho/nova-launcher/nova-launcher
@@ -57,4 +67,5 @@ To uninstall:
 
 ```bash
 brew uninstall --cask suho/nova-launcher/nova-launcher
+brew untap suho/nova-launcher
 ```

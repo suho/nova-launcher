@@ -2,7 +2,7 @@ cask "nova-launcher" do
   version :latest
   sha256 :no_check
 
-  url "ssh://git@github.com/suho/nova-launcher.git",
+  url "https://github.com/suho/nova-launcher.git",
       using:  :git,
       branch: "main"
   name "Nova Launcher"
