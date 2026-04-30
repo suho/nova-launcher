@@ -148,6 +148,8 @@ struct CommandPaletteView: View {
                 }
                 .padding(10)
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
             .onChange(of: store.selectedID) { _, selectedID in
                 guard let selectedID else {
                     return
