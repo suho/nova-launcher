@@ -50,25 +50,27 @@ final class LauncherStore: ObservableObject {
     }
 
     func beginPaletteSession() {
-        refreshRunningApplications()
-
-        let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: true)
-        focusedWindow = hasWindowAccess
-            ? windowManager.captureFocusedWindow(promptForAccessibility: false)
-            : nil
-        focusedWindowDescription = focusedWindow?.displayName
-        windowCommandUnavailableReason = hasWindowAccess
-            ? "Focus a window before opening Nova"
-            : "Grant Accessibility permission, then reopen Nova"
         query = ""
         selectedID = nil
         openingID = nil
+        focusedWindow = nil
+        focusedWindowDescription = nil
+        windowCommandUnavailableReason = "Checking focused window"
 
         if applications.isEmpty {
             Task {
                 await refreshApplications()
             }
         }
+    }
+
+    func refreshPaletteContext() {
+        refreshRunningApplications()
+
+        refreshFocusedWindowContext(
+            noWindowReason: "Focus a window before opening Nova",
+            noPermissionReason: "Grant Accessibility permission, then reopen Nova"
+        )
     }
 
     func refreshApplications() async {
@@ -137,16 +139,11 @@ final class LauncherStore: ObservableObject {
         case .application(let application):
             open(application, itemID: item.id, completion: {})
         case .windowCommand(let command):
-            let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: true)
-            let window = hasWindowAccess
-                ? windowManager.captureFocusedWindow(promptForAccessibility: false)
-                : nil
+            let window = refreshFocusedWindowContext(
+                noWindowReason: "Focus a window before using this shortcut",
+                noPermissionReason: "Grant Accessibility permission, then try again"
+            )
 
-            focusedWindow = window
-            focusedWindowDescription = window?.displayName
-            windowCommandUnavailableReason = hasWindowAccess
-                ? "Focus a window before using this shortcut"
-                : "Grant Accessibility permission, then try again"
             perform(command, itemID: item.id, context: window, completion: {})
         }
     }
@@ -237,9 +234,13 @@ final class LauncherStore: ObservableObject {
         completion: @escaping () -> Void
     ) {
         openingID = itemID
+        let commandContext = context ?? refreshFocusedWindowContext(
+            noWindowReason: "Focus a window before opening Nova",
+            noPermissionReason: "Grant Accessibility permission, then reopen Nova"
+        )
 
         do {
-            statusMessage = try windowManager.perform(command, on: context)
+            statusMessage = try windowManager.perform(command, on: commandContext)
             query = ""
             selectedID = nil
             completion()
@@ -253,6 +254,23 @@ final class LauncherStore: ObservableObject {
     private func updateFilteredItems() {
         filteredItems = FuzzyMatcher.match(query: query, in: searchableItems, limit: 8)
         selectedID = filteredItems.first?.id
+    }
+
+    @discardableResult
+    private func refreshFocusedWindowContext(
+        noWindowReason: String,
+        noPermissionReason: String
+    ) -> FocusedWindowContext? {
+        let hasWindowAccess = windowManager.accessibilityTrusted(promptForPermission: true)
+        let window = hasWindowAccess
+            ? windowManager.captureFocusedWindow(promptForAccessibility: false)
+            : nil
+
+        focusedWindow = window
+        focusedWindowDescription = window?.displayName
+        windowCommandUnavailableReason = hasWindowAccess ? noWindowReason : noPermissionReason
+
+        return window
     }
 
     private func saveConfiguration(_ configuration: LauncherItemConfiguration, for itemID: LauncherItem.ID) {

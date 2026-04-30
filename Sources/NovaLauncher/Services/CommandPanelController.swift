@@ -5,6 +5,7 @@ import SwiftUI
 final class CommandPanelController: NSObject, NSWindowDelegate {
     private let store: LauncherStore
     private var panel: CommandPanel?
+    private var sessionRefreshTask: Task<Void, Never>?
 
     init(store: LauncherStore) {
         self.store = store
@@ -27,6 +28,27 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
 
         store.beginPaletteSession()
 
+        let panel = self.panel ?? makePanel()
+        self.panel = panel
+        setPaletteExpanded(false, animated: false)
+        center(panel)
+        present(panel)
+        scheduleSessionRefresh(for: panel)
+    }
+
+    func close() {
+        sessionRefreshTask?.cancel()
+        sessionRefreshTask = nil
+        panel?.orderOut(nil)
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        close()
+    }
+
+    private func makePanel() -> CommandPanel {
+        let initialSize = CommandPaletteMetrics.windowSize(isExpanded: false)
+
         let rootView = CommandPaletteView(
             store: store,
             dismiss: { [weak self] in self?.close() },
@@ -36,7 +58,6 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         )
 
         let hostingView = NSHostingView(rootView: rootView)
-        let initialSize = CommandPaletteMetrics.windowSize(isExpanded: false)
         hostingView.frame = NSRect(origin: .zero, size: initialSize)
         hostingView.autoresizingMask = [.width, .height]
         let panel = CommandPanel(
@@ -60,19 +81,7 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = true
 
-        center(panel)
-
-        self.panel = panel
-        present(panel)
-    }
-
-    func close() {
-        panel?.orderOut(nil)
-        panel = nil
-    }
-
-    func windowDidResignKey(_ notification: Notification) {
-        close()
+        return panel
     }
 
     private func center(_ panel: NSPanel) {
@@ -89,6 +98,24 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
     private func present(_ panel: NSPanel) {
         panel.orderFrontRegardless()
         panel.makeKey()
+        panel.displayIfNeeded()
+    }
+
+    private func scheduleSessionRefresh(for panel: NSPanel) {
+        sessionRefreshTask?.cancel()
+        sessionRefreshTask = Task { @MainActor [weak self, weak panel] in
+            await Task.yield()
+
+            guard !Task.isCancelled,
+                  let self,
+                  let panel,
+                  self.panel === panel,
+                  panel.isVisible else {
+                return
+            }
+
+            self.store.refreshPaletteContext()
+        }
     }
 
     private func setPaletteExpanded(_ isExpanded: Bool, animated: Bool) {
