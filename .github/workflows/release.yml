@@ -61,11 +61,111 @@ jobs:
         with:
           ref: ${{ steps.release.outputs.tag }}
 
+      - name: Import Developer ID certificate
+        id: signing
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${CERTIFICATE_BASE64:-}" || -z "${CERTIFICATE_PASSWORD:-}" ]]; then
+            echo "::error::Set DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64 and DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD secrets."
+            exit 1
+          fi
+
+          keychain_password="$(uuidgen)"
+          keychain_path="${RUNNER_TEMP}/app-signing.keychain-db"
+          certificate_path="${RUNNER_TEMP}/developer-id-application.p12"
+
+          printf '%s' "${CERTIFICATE_BASE64}" | base64 --decode >"${certificate_path}"
+
+          security create-keychain -p "${keychain_password}" "${keychain_path}"
+          security set-keychain-settings -lut 21600 "${keychain_path}"
+          security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+          security import "${certificate_path}" \
+            -P "${CERTIFICATE_PASSWORD}" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "${keychain_path}"
+          security list-keychains -d user -s "${keychain_path}"
+          security default-keychain -d user -s "${keychain_path}"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "${keychain_password}" \
+            "${keychain_path}"
+
+          signing_identity="$(
+            security find-identity -v -p codesigning "${keychain_path}" |
+              awk -F '"' '/Developer ID Application/ { print $2; exit }'
+          )"
+
+          if [[ -z "${signing_identity}" ]]; then
+            echo "::error::No Developer ID Application identity found in imported certificate."
+            security find-identity -v -p codesigning "${keychain_path}" || true
+            exit 1
+          fi
+
+          {
+            echo "identity=${signing_identity}"
+            echo "keychain=${keychain_path}"
+          } >>"${GITHUB_OUTPUT}"
+
       - name: Run tests
         run: swift test
 
       - name: Build app bundle
         run: ./script/build_and_run.sh --bundle
+
+      - name: Sign app bundle
+        env:
+          SIGNING_IDENTITY: ${{ steps.signing.outputs.identity }}
+          SIGNING_KEYCHAIN: ${{ steps.signing.outputs.keychain }}
+        run: |
+          set -euo pipefail
+
+          codesign \
+            --force \
+            --timestamp \
+            --options runtime \
+            --keychain "${SIGNING_KEYCHAIN}" \
+            --sign "${SIGNING_IDENTITY}" \
+            "dist/${APP_NAME}.app"
+
+      - name: Verify Developer ID signature
+        run: |
+          set -euo pipefail
+          codesign --verify --strict --verbose=2 "dist/${APP_NAME}.app"
+          codesign --display --verbose=4 "dist/${APP_NAME}.app"
+
+      - name: Notarize and staple app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${APPLE_ID:-}" || -z "${APPLE_TEAM_ID:-}" || -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]]; then
+            echo "::error::Set APPLE_ID, APPLE_TEAM_ID, and APPLE_APP_SPECIFIC_PASSWORD secrets for notarization."
+            exit 1
+          fi
+
+          notarization_zip="${RUNNER_TEMP}/${APP_NAME}-${VERSION}-notarization.zip"
+          ditto -c -k --keepParent "dist/${APP_NAME}.app" "${notarization_zip}"
+
+          xcrun notarytool submit "${notarization_zip}" \
+            --apple-id "${APPLE_ID}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+            --wait
+
+          xcrun stapler staple "dist/${APP_NAME}.app"
+          xcrun stapler validate "dist/${APP_NAME}.app"
+          spctl -a -vvv --type execute "dist/${APP_NAME}.app"
 
       - name: Package release asset
         id: package
@@ -127,3 +227,7 @@ jobs:
             --field client_payload[asset_url]="${ASSET_URL}" \
             --field client_payload[source_repository]="${GITHUB_REPOSITORY}" \
             --field client_payload[source_sha]="${GITHUB_SHA}"
+
+      - name: Delete signing keychain
+        if: always() && steps.signing.outputs.keychain != ''
+        run: security delete-keychain "${{ steps.signing.outputs.keychain }}" || true

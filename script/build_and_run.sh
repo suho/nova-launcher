@@ -22,6 +22,29 @@ usage() {
   echo "usage: $0 [run|--bundle|--debug|--logs|--telemetry|--verify]" >&2
 }
 
+sign_bundle() {
+  if [[ -n "${NOVA_CODESIGN_IDENTITY:-}" ]]; then
+    codesign_args=(
+      --force
+      --timestamp
+      --options runtime
+      --sign "$NOVA_CODESIGN_IDENTITY"
+    )
+
+    if [[ -n "${NOVA_CODESIGN_KEYCHAIN:-}" ]]; then
+      codesign_args+=(--keychain "$NOVA_CODESIGN_KEYCHAIN")
+    fi
+  else
+    codesign_args=(
+      --force
+      --sign -
+    )
+  fi
+
+  codesign "${codesign_args[@]}" "$APP_BUNDLE"
+  codesign --verify --strict --verbose=2 "$APP_BUNDLE"
+}
+
 build_bundle() {
   swift build
   BUILD_BINARY="$(swift build --show-bin-path)/$APP_NAME"
@@ -57,6 +80,8 @@ build_bundle() {
 </dict>
 </plist>
 PLIST
+
+  sign_bundle
 }
 
 open_app() {

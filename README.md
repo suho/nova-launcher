@@ -68,15 +68,26 @@ brew uninstall --cask suho/tap/nova-launcher
 ## Release
 
 The release workflow runs when a `v*` tag is pushed. It builds the app on
-GitHub Actions, creates a GitHub release with `NovaLauncher-<version>.zip`,
-computes the SHA-256 checksum, and dispatches `suho/homebrew-tap` to update the
-cask.
+GitHub Actions, signs and notarizes the app, creates a GitHub release with
+`NovaLauncher-<version>.zip`, computes the SHA-256 checksum, and dispatches
+`suho/homebrew-tap` to update the cask.
 
-The `suho/nova-launcher` repository must have a `HOMEBREW_TAP_TOKEN` secret.
-Use a fine-grained token scoped to `suho/homebrew-tap` with Contents read/write
-permission.
+The `suho/nova-launcher` repository must have these secrets:
+
+- `DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64`: base64-encoded Developer ID
+  Application `.p12` certificate.
+- `DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD`: password for that `.p12`
+  certificate.
+- `APPLE_ID`: Apple ID email used for notarization.
+- `APPLE_TEAM_ID`: Apple Developer team ID.
+- `APPLE_APP_SPECIFIC_PASSWORD`: app-specific password for notarization.
+- `HOMEBREW_TAP_TOKEN`: fine-grained GitHub token scoped to `suho/homebrew-tap`
+  with Contents read/write permission.
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
+
+After adding or rotating signing secrets, run the release workflow manually with
+an existing tag to replace that release asset and update the tap checksum.
