@@ -3,9 +3,15 @@ import SwiftUI
 
 @MainActor
 final class ErrorToastWindowController {
-    private enum Metrics {
+    fileprivate enum Metrics {
         static let bottomInset: CGFloat = 56
         static let horizontalInset: CGFloat = 16
+        static let minimumToastWidth: CGFloat = 188
+        static let maximumToastWidth: CGFloat = 460
+        static let toastHorizontalPadding: CGFloat = 28
+        static let iconWidth: CGFloat = 14
+        static let iconSpacing: CGFloat = 8
+        static let textFont = NSFont.systemFont(ofSize: 12, weight: .medium)
     }
 
     private var panel: ErrorToastPanel?
@@ -23,8 +29,10 @@ final class ErrorToastWindowController {
     private func show(message: String) {
         let panel = self.panel ?? makePanel()
         self.panel = panel
+        let screen = screenForToast()
+        let toastWidth = toastWidth(for: message, on: screen)
 
-        let content = ErrorToastWindowContent(message: message)
+        let content = ErrorToastWindowContent(message: message, toastWidth: toastWidth)
         let hostingView: NSHostingView<ErrorToastWindowContent>
 
         if let existingHostingView = self.hostingView {
@@ -41,14 +49,15 @@ final class ErrorToastWindowController {
 
         hostingView.invalidateIntrinsicContentSize()
         let fittingSize = hostingView.fittingSize
+        let windowWidth = ErrorToastWindowContent.windowWidth(for: toastWidth)
         let windowSize = NSSize(
-            width: ErrorToastWindowContent.windowWidth,
+            width: windowWidth,
             height: max(fittingSize.height, ErrorToastWindowContent.minimumWindowHeight)
         )
 
         hostingView.frame = NSRect(origin: .zero, size: windowSize)
         panel.setContentSize(windowSize)
-        panel.setFrame(NSRect(origin: origin(for: windowSize), size: windowSize), display: true)
+        panel.setFrame(NSRect(origin: origin(for: windowSize, on: screen), size: windowSize), display: true)
         panel.alphaValue = 1
         panel.orderFrontRegardless()
     }
@@ -78,8 +87,29 @@ final class ErrorToastWindowController {
         return panel
     }
 
-    private func origin(for windowSize: NSSize) -> NSPoint {
-        guard let screen = screenForToast() else {
+    private func toastWidth(for message: String, on screen: NSScreen?) -> CGFloat {
+        let screenLimitedMaximum = screen.map { screen in
+            max(
+                Metrics.minimumToastWidth,
+                screen.visibleFrame.width - Metrics.horizontalInset * 2 - ErrorToastWindowContent.shadowPadding * 2
+            )
+        } ?? Metrics.maximumToastWidth
+        let maximumWidth = min(Metrics.maximumToastWidth, screenLimitedMaximum)
+        let textSize = (message as NSString).boundingRect(
+            with: NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: Metrics.textFont]
+        ).size
+        let naturalWidth = ceil(textSize.width)
+            + Metrics.iconWidth
+            + Metrics.iconSpacing
+            + Metrics.toastHorizontalPadding
+
+        return min(max(naturalWidth, Metrics.minimumToastWidth), maximumWidth)
+    }
+
+    private func origin(for windowSize: NSSize, on screen: NSScreen?) -> NSPoint {
+        guard let screen else {
             return .zero
         }
 
@@ -103,20 +133,26 @@ final class ErrorToastWindowController {
 }
 
 private struct ErrorToastWindowContent: View {
-    static let toastWidth: CGFloat = 340
     static let shadowPadding: CGFloat = 24
     static let minimumWindowHeight: CGFloat = 76
-    static var windowWidth: CGFloat { toastWidth + shadowPadding * 2 }
     static var minimumWindowSize: NSSize {
-        NSSize(width: windowWidth, height: minimumWindowHeight)
+        NSSize(
+            width: ErrorToastWindowController.Metrics.minimumToastWidth + shadowPadding * 2,
+            height: minimumWindowHeight
+        )
+    }
+
+    static func windowWidth(for toastWidth: CGFloat) -> CGFloat {
+        toastWidth + shadowPadding * 2
     }
 
     let message: String
+    let toastWidth: CGFloat
 
     var body: some View {
-        ErrorToast(message: message)
+        ErrorToast(message: message, width: toastWidth)
             .padding(Self.shadowPadding)
-            .frame(width: Self.windowWidth)
+            .frame(width: Self.windowWidth(for: toastWidth))
     }
 }
 
