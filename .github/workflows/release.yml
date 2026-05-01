@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  APP_NAME: NovaLauncher
+  CASK_NAME: nova-launcher
+  TAP_REPOSITORY: suho/homebrew-tap
+
+jobs:
+  release:
+    name: Build release and update tap
+    runs-on: macos-26
+
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            tag="${INPUT_TAG}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "${tag}" =~ ^v[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release tag must look like v0.1.0; got ${tag}"
+            exit 1
+          fi
+
+          version="${tag#v}"
+          zip_name="${APP_NAME}-${version}.zip"
+
+          {
+            echo "tag=${tag}"
+            echo "version=${version}"
+            echo "zip_name=${zip_name}"
+          } >>"${GITHUB_OUTPUT}"
+
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build app bundle
+        run: ./script/build_and_run.sh --bundle
+
+      - name: Package release asset
+        id: package
+        run: |
+          set -euo pipefail
+
+          zip_name="${{ steps.release.outputs.zip_name }}"
+
+          cd dist
+          ditto -c -k --keepParent "${APP_NAME}.app" "../${zip_name}"
+          cd ..
+
+          shasum -a 256 "${zip_name}" | tee SHA256SUMS
+          checksum="$(cut -d ' ' -f 1 SHA256SUMS)"
+
+          {
+            echo "checksum=${checksum}"
+            echo "asset_url=https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ steps.release.outputs.tag }}/${zip_name}"
+          } >>"${GITHUB_OUTPUT}"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          ZIP_NAME: ${{ steps.release.outputs.zip_name }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ZIP_NAME}" SHA256SUMS --clobber
+          else
+            gh release create "${TAG}" "${ZIP_NAME}" SHA256SUMS \
+              --title "Nova Launcher ${VERSION}" \
+              --notes "Release ${VERSION}"
+          fi
+
+      - name: Dispatch Homebrew tap update
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          SHA256: ${{ steps.package.outputs.checksum }}
+          ASSET_URL: ${{ steps.package.outputs.asset_url }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::Set the HOMEBREW_TAP_TOKEN repository secret with write access to ${TAP_REPOSITORY}."
+            exit 1
+          fi
+
+          gh api "repos/${TAP_REPOSITORY}/dispatches" \
+            --method POST \
+            --field event_type="nova-launcher-release" \
+            --field client_payload[tag]="${TAG}" \
+            --field client_payload[version]="${VERSION}" \
+            --field client_payload[sha256]="${SHA256}" \
+            --field client_payload[asset_url]="${ASSET_URL}" \
+            --field client_payload[source_repository]="${GITHUB_REPOSITORY}" \
+            --field client_payload[source_sha]="${GITHUB_SHA}"

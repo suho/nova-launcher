@@ -32,8 +32,8 @@ the app bundle as a foreground macOS application.
 
 ## Install with Homebrew
 
-The Homebrew cask lives in `suho/homebrew-tap` and builds the app locally from
-the latest `main` branch.
+The Homebrew cask lives in `suho/homebrew-tap`. Tagged releases publish a
+versioned app zip and automatically update the cask checksum.
 
 Prerequisites:
 
@@ -53,14 +53,30 @@ If you previously tapped this repository directly, remove the old tap first:
 brew untap suho/nova-launcher
 ```
 
-Because the cask uses `version :latest`, use `--greedy` when upgrading:
+To upgrade:
 
 ```bash
-brew upgrade --cask --greedy suho/tap/nova-launcher
+brew upgrade --cask suho/tap/nova-launcher
 ```
 
 To uninstall:
 
 ```bash
 brew uninstall --cask suho/tap/nova-launcher
+```
+
+## Release
+
+The release workflow runs when a `v*` tag is pushed. It builds the app on
+GitHub Actions, creates a GitHub release with `NovaLauncher-<version>.zip`,
+computes the SHA-256 checksum, and dispatches `suho/homebrew-tap` to update the
+cask.
+
+The `suho/nova-launcher` repository must have a `HOMEBREW_TAP_TOKEN` secret.
+Use a fine-grained token scoped to `suho/homebrew-tap` with Contents read/write
+permission.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
 ```
