@@ -5,7 +5,7 @@ focuses on local app launching through a keyboard-first command palette.
 
 ## Screenshots
 
-![Nova Launcher command palette search](docs/screenshots/command-palette-search.png)
+![Nova Launcher command palette search](docs/screenshots/command-palette-search.png?v=20260501)
 
 ![Nova Launcher settings items shortcuts](docs/screenshots/settings-items-shortcuts.png)
 
