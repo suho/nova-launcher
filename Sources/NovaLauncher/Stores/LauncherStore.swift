@@ -33,6 +33,7 @@ final class LauncherStore: ObservableObject {
     private var focusedWindow: FocusedWindowContext?
     let commandItems = WindowCommand.allCases.map(LauncherItem.windowCommand)
     var onItemConfigurationsChanged: (() -> Void)?
+    var onErrorToastMessageChanged: ((String?) -> Void)?
 
     init() {
         observeWorkspaceApplications()
@@ -314,7 +315,7 @@ final class LauncherStore: ObservableObject {
 
     private func showErrorToast(_ message: String) {
         errorToastDismissTask?.cancel()
-        errorToastMessage = message
+        setErrorToastMessage(message)
         errorToastDismissTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
 
@@ -322,7 +323,7 @@ final class LauncherStore: ObservableObject {
                 return
             }
 
-            self?.errorToastMessage = nil
+            self?.setErrorToastMessage(nil)
             self?.errorToastDismissTask = nil
         }
     }
@@ -330,7 +331,12 @@ final class LauncherStore: ObservableObject {
     private func clearErrorToast() {
         errorToastDismissTask?.cancel()
         errorToastDismissTask = nil
-        errorToastMessage = nil
+        setErrorToastMessage(nil)
+    }
+
+    private func setErrorToastMessage(_ message: String?) {
+        errorToastMessage = message
+        onErrorToastMessageChanged?(message)
     }
 
     private func updateFilteredItems() {

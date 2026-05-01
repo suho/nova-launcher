@@ -7,6 +7,7 @@ final class AppServices {
     let launcherStore: LauncherStore
     let hotKeyManager: HotKeyManager
     private let panelController: CommandPanelController
+    private let errorToastController: ErrorToastWindowController
 
     private init() {
         let store = LauncherStore()
@@ -15,6 +16,7 @@ final class AppServices {
         self.launcherStore = store
         self.hotKeyManager = hotKeyManager
         self.panelController = CommandPanelController(store: store)
+        self.errorToastController = ErrorToastWindowController()
 
         hotKeyManager.onPressed = { [weak self] in
             self?.toggleCommandPalette()
@@ -22,6 +24,10 @@ final class AppServices {
 
         store.onItemConfigurationsChanged = { [weak self] in
             self?.syncItemHotKeys()
+        }
+
+        store.onErrorToastMessageChanged = { [weak self] message in
+            self?.errorToastController.update(message: message)
         }
     }
 
