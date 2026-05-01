@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct CommandPaletteView: View {
@@ -67,13 +68,7 @@ struct CommandPaletteView: View {
     private var paletteSurfaceTint: Color {
         activeColorScheme == .dark
             ? .black.opacity(0.74)
-            : .white.opacity(0.58)
-    }
-
-    private var paletteBackingFill: Color {
-        activeColorScheme == .dark
-            ? .black.opacity(0.16)
-            : .white.opacity(0.94)
+            : .clear
     }
 
     private var paletteStrokeGradient: LinearGradient {
@@ -154,31 +149,35 @@ struct CommandPaletteView: View {
     }
 
     private func paletteShadowBacking(cornerRadius: CGFloat, elevation: PaletteElevation) -> some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(paletteBackingFill)
-            .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.14 : 0.13),
-                radius: activeColorScheme == .dark ? elevation.darkOuterRadius : elevation.lightOuterRadius,
-                x: 0,
-                y: activeColorScheme == .dark ? elevation.darkOuterOffset : elevation.lightOuterOffset
-            )
-            .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.09 : 0.11),
-                radius: activeColorScheme == .dark ? 12 : 38,
-                x: 0,
-                y: activeColorScheme == .dark ? 5 : 18
-            )
-            .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.06 : 0.05),
-                radius: activeColorScheme == .dark ? 7 : 20,
-                x: 0,
-                y: activeColorScheme == .dark ? 0 : 2
-            )
+        ZStack {
+            PaletteDropShadowView(cornerRadius: cornerRadius, shadows: shadowLayers(for: elevation))
+
+            if activeColorScheme == .dark {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.black.opacity(0.16))
+            }
+        }
     }
 
     private func paletteSurfaceStroke(cornerRadius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .strokeBorder(paletteStrokeGradient, lineWidth: activeColorScheme == .dark ? 0.5 : 1)
+    }
+
+    private func shadowLayers(for elevation: PaletteElevation) -> [PaletteShadowLayer] {
+        if activeColorScheme == .dark {
+            return [
+                PaletteShadowLayer(opacity: 0.14, radius: elevation.darkOuterRadius, y: elevation.darkOuterOffset),
+                PaletteShadowLayer(opacity: 0.09, radius: 12, y: 5),
+                PaletteShadowLayer(opacity: 0.06, radius: 7, y: 0)
+            ]
+        }
+
+        return [
+            PaletteShadowLayer(opacity: 0.13, radius: elevation.lightOuterRadius, y: elevation.lightOuterOffset),
+            PaletteShadowLayer(opacity: 0.10, radius: 42, y: 20),
+            PaletteShadowLayer(opacity: 0.04, radius: 24, y: 4)
+        ]
     }
 
     @ViewBuilder
@@ -303,6 +302,91 @@ private enum PaletteElevation {
             16
         case .results:
             14
+        }
+    }
+}
+
+private struct PaletteShadowLayer: Equatable {
+    let opacity: Float
+    let radius: CGFloat
+    let y: CGFloat
+}
+
+private struct PaletteDropShadowView: NSViewRepresentable {
+    let cornerRadius: CGFloat
+    let shadows: [PaletteShadowLayer]
+
+    func makeNSView(context: Context) -> PaletteDropShadowHostView {
+        let view = PaletteDropShadowHostView()
+        view.update(cornerRadius: cornerRadius, shadows: shadows)
+        return view
+    }
+
+    func updateNSView(_ nsView: PaletteDropShadowHostView, context: Context) {
+        nsView.update(cornerRadius: cornerRadius, shadows: shadows)
+    }
+}
+
+private final class PaletteDropShadowHostView: NSView {
+    private var cornerRadius: CGFloat = 0
+    private var shadows: [PaletteShadowLayer] = []
+    private var shadowLayers: [CALayer] = []
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.masksToBounds = false
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(cornerRadius: CGFloat, shadows: [PaletteShadowLayer]) {
+        guard self.cornerRadius != cornerRadius || self.shadows != shadows else {
+            return
+        }
+
+        self.cornerRadius = cornerRadius
+        self.shadows = shadows
+        rebuildShadowLayers()
+        needsLayout = true
+    }
+
+    override func layout() {
+        super.layout()
+        updateShadowLayerFrames()
+    }
+
+    private func rebuildShadowLayers() {
+        shadowLayers.forEach { $0.removeFromSuperlayer() }
+        shadowLayers = shadows.map { shadow in
+            let shadowLayer = CALayer()
+            shadowLayer.masksToBounds = false
+            shadowLayer.backgroundColor = NSColor.white.withAlphaComponent(0.001).cgColor
+            shadowLayer.shadowColor = NSColor.black.cgColor
+            shadowLayer.shadowOpacity = shadow.opacity
+            shadowLayer.shadowRadius = shadow.radius
+            shadowLayer.shadowOffset = CGSize(width: 0, height: -shadow.y)
+            layer?.addSublayer(shadowLayer)
+            return shadowLayer
+        }
+        updateShadowLayerFrames()
+    }
+
+    private func updateShadowLayerFrames() {
+        let shadowPath = CGPath(
+            roundedRect: bounds,
+            cornerWidth: cornerRadius,
+            cornerHeight: cornerRadius,
+            transform: nil
+        )
+
+        for shadowLayer in shadowLayers {
+            shadowLayer.frame = bounds
+            shadowLayer.cornerRadius = cornerRadius
+            shadowLayer.shadowPath = shadowPath
         }
     }
 }
