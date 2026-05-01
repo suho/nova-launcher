@@ -176,7 +176,7 @@ struct CommandPaletteView: View {
         return [
             PaletteShadowLayer(opacity: 0.13, radius: elevation.lightOuterRadius, y: elevation.lightOuterOffset),
             PaletteShadowLayer(opacity: 0.10, radius: 42, y: 20),
-            PaletteShadowLayer(opacity: 0.04, radius: 24, y: 4)
+            PaletteShadowLayer(opacity: 0.04, radius: 24, y: 0)
         ]
     }
 
@@ -335,6 +335,7 @@ private final class PaletteDropShadowHostView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+        layer?.isOpaque = false
         layer?.masksToBounds = false
     }
 
@@ -363,8 +364,9 @@ private final class PaletteDropShadowHostView: NSView {
         shadowLayers.forEach { $0.removeFromSuperlayer() }
         shadowLayers = shadows.map { shadow in
             let shadowLayer = CALayer()
+            shadowLayer.isOpaque = false
             shadowLayer.masksToBounds = false
-            shadowLayer.backgroundColor = NSColor.white.withAlphaComponent(0.001).cgColor
+            shadowLayer.backgroundColor = NSColor.clear.cgColor
             shadowLayer.shadowColor = NSColor.black.cgColor
             shadowLayer.shadowOpacity = shadow.opacity
             shadowLayer.shadowRadius = shadow.radius
