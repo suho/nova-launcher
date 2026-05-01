@@ -150,7 +150,7 @@ struct CommandPaletteView: View {
 
     private var resultsList: some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: 4) {
                     ForEach(store.filteredItems) { item in
                         AppResultRow(
