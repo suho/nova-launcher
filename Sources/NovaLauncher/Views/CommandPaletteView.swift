@@ -65,7 +65,19 @@ struct CommandPaletteView: View {
     private var paletteSurfaceTint: Color {
         activeColorScheme == .dark
             ? .black.opacity(0.74)
-            : .white.opacity(0.36)
+            : .white.opacity(0.58)
+    }
+
+    private var paletteBackingFill: Color {
+        activeColorScheme == .dark
+            ? .black.opacity(0.16)
+            : .white.opacity(0.94)
+    }
+
+    private var paletteStrokeColor: Color {
+        activeColorScheme == .dark
+            ? .white.opacity(0.08)
+            : .black.opacity(0.11)
     }
 
     private var searchHeader: some View {
@@ -94,24 +106,12 @@ struct CommandPaletteView: View {
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.searchBarHeight)
         .glassEffect(paletteGlass, in: paletteShape)
         .glassEffectID("command-palette-search", in: glassNamespace)
-        .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.12 : 0.13),
-            radius: activeColorScheme == .dark ? 30 : 42,
-            x: 0,
-            y: activeColorScheme == .dark ? 16 : 20
-        )
-        .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.08 : 0.065),
-            radius: activeColorScheme == .dark ? 12 : 18,
-            x: 0,
-            y: activeColorScheme == .dark ? 5 : 6
-        )
-        .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0 : 0.055),
-            radius: activeColorScheme == .dark ? 8 : 12,
-            x: 0,
-            y: 0
-        )
+        .background {
+            paletteShadowBacking(cornerRadius: 24, elevation: .search)
+        }
+        .overlay {
+            paletteSurfaceStroke(cornerRadius: 24)
+        }
     }
 
     private var resultsPanel: some View {
@@ -126,28 +126,44 @@ struct CommandPaletteView: View {
         .frame(width: CommandPaletteMetrics.contentWidth, height: CommandPaletteMetrics.resultsPanelHeight)
         .glassEffect(paletteGlass, in: resultsPanelShape)
         .glassEffectID("command-palette-results", in: glassNamespace)
-        .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.10 : 0.11),
-            radius: activeColorScheme == .dark ? 28 : 40,
-            x: 0,
-            y: activeColorScheme == .dark ? 14 : 18
-        )
-        .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.07 : 0.06),
-            radius: activeColorScheme == .dark ? 10 : 17,
-            x: 0,
-            y: activeColorScheme == .dark ? 4 : 5
-        )
-        .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0 : 0.05),
-            radius: activeColorScheme == .dark ? 7 : 11,
-            x: 0,
-            y: 0
-        )
+        .background {
+            paletteShadowBacking(cornerRadius: 20, elevation: .results)
+        }
+        .overlay {
+            paletteSurfaceStroke(cornerRadius: 20)
+        }
     }
 
     private var resultsPanelShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
+    }
+
+    private func paletteShadowBacking(cornerRadius: CGFloat, elevation: PaletteElevation) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(paletteBackingFill)
+            .shadow(
+                color: .black.opacity(activeColorScheme == .dark ? 0.14 : 0.26),
+                radius: activeColorScheme == .dark ? elevation.darkOuterRadius : elevation.lightOuterRadius,
+                x: 0,
+                y: activeColorScheme == .dark ? elevation.darkOuterOffset : elevation.lightOuterOffset
+            )
+            .shadow(
+                color: .black.opacity(activeColorScheme == .dark ? 0.09 : 0.18),
+                radius: activeColorScheme == .dark ? 12 : 16,
+                x: 0,
+                y: activeColorScheme == .dark ? 5 : 8
+            )
+            .shadow(
+                color: .black.opacity(activeColorScheme == .dark ? 0.06 : 0.12),
+                radius: activeColorScheme == .dark ? 7 : 9,
+                x: 0,
+                y: 0
+            )
+    }
+
+    private func paletteSurfaceStroke(cornerRadius: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .strokeBorder(paletteStrokeColor, lineWidth: activeColorScheme == .dark ? 0.5 : 1)
     }
 
     @ViewBuilder
@@ -232,6 +248,47 @@ struct CommandPaletteView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+}
+
+private enum PaletteElevation {
+    case search
+    case results
+
+    var lightOuterRadius: CGFloat {
+        switch self {
+        case .search:
+            38
+        case .results:
+            42
+        }
+    }
+
+    var lightOuterOffset: CGFloat {
+        switch self {
+        case .search:
+            18
+        case .results:
+            20
+        }
+    }
+
+    var darkOuterRadius: CGFloat {
+        switch self {
+        case .search:
+            30
+        case .results:
+            28
+        }
+    }
+
+    var darkOuterOffset: CGFloat {
+        switch self {
+        case .search:
+            16
+        case .results:
+            14
+        }
     }
 }
 
