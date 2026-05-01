@@ -61,57 +61,98 @@ jobs:
         with:
           ref: ${{ steps.release.outputs.tag }}
 
-      - name: Import Developer ID certificate
-        id: signing
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD }}
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+
+      - name: Install fastlane
+        id: fastlane
         run: |
           set -euo pipefail
 
-          if [[ -z "${CERTIFICATE_BASE64:-}" || -z "${CERTIFICATE_PASSWORD:-}" ]]; then
-            echo "::error::Set DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64 and DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD secrets."
+          if [[ -f Gemfile ]]; then
+            bundle install --jobs 4 --retry 3
+            echo "command=bundle exec fastlane" >>"${GITHUB_OUTPUT}"
+          else
+            gem install fastlane --no-document
+            echo "command=fastlane" >>"${GITHUB_OUTPUT}"
+          fi
+
+      - name: Create signing keychain
+        id: signing
+        run: |
+          set -euo pipefail
+
+          keychain_password="$(uuidgen)"
+          keychain_name="nova-release-${GITHUB_RUN_ID}.keychain-db"
+
+          security create-keychain -p "${keychain_password}" "${keychain_name}"
+          security set-keychain-settings -lut 21600 "${keychain_name}"
+          security unlock-keychain -p "${keychain_password}" "${keychain_name}"
+          security list-keychains -d user -s "${keychain_name}"
+          security default-keychain -d user -s "${keychain_name}"
+
+          {
+            echo "keychain=${keychain_name}"
+            echo "password=${keychain_password}"
+          } >>"${GITHUB_OUTPUT}"
+
+      - name: Install Developer ID certificate with fastlane match
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_GIT_PRIVATE_KEY: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+          MATCH_KEYCHAIN_NAME: ${{ steps.signing.outputs.keychain }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ steps.signing.outputs.password }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${MATCH_GIT_URL:-}" || -z "${MATCH_PASSWORD:-}" ]]; then
+            echo "::error::Set MATCH_GIT_URL and MATCH_PASSWORD secrets for fastlane match."
             exit 1
           fi
 
-          keychain_password="$(uuidgen)"
-          keychain_path="${RUNNER_TEMP}/app-signing.keychain-db"
-          certificate_path="${RUNNER_TEMP}/developer-id-application.p12"
+          if [[ -n "${MATCH_GIT_PRIVATE_KEY:-}" && ! -f "${MATCH_GIT_PRIVATE_KEY}" ]]; then
+            private_key_path="${RUNNER_TEMP}/match_git_private_key"
+            printf '%s\n' "${MATCH_GIT_PRIVATE_KEY}" >"${private_key_path}"
+            chmod 600 "${private_key_path}"
+            export MATCH_GIT_PRIVATE_KEY="${private_key_path}"
+          fi
 
-          printf '%s' "${CERTIFICATE_BASE64}" | base64 --decode >"${certificate_path}"
+          fastlane_command="${{ steps.fastlane.outputs.command }}"
+          ${fastlane_command} match developer_id \
+            --readonly \
+            --skip_provisioning_profiles \
+            --keychain_name "${MATCH_KEYCHAIN_NAME}" \
+            --keychain_password "${MATCH_KEYCHAIN_PASSWORD}"
 
-          security create-keychain -p "${keychain_password}" "${keychain_path}"
-          security set-keychain-settings -lut 21600 "${keychain_path}"
-          security unlock-keychain -p "${keychain_password}" "${keychain_path}"
-          security import "${certificate_path}" \
-            -P "${CERTIFICATE_PASSWORD}" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "${keychain_path}"
-          security list-keychains -d user -s "${keychain_path}"
-          security default-keychain -d user -s "${keychain_path}"
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s \
-            -k "${keychain_password}" \
-            "${keychain_path}"
+            -k "${MATCH_KEYCHAIN_PASSWORD}" \
+            "${MATCH_KEYCHAIN_NAME}"
+
+      - name: Resolve Developer ID signing identity
+        id: developer-id
+        env:
+          SIGNING_KEYCHAIN: ${{ steps.signing.outputs.keychain }}
+        run: |
+          set -euo pipefail
 
           signing_identity="$(
-            security find-identity -v -p codesigning "${keychain_path}" |
+            security find-identity -v -p codesigning "${SIGNING_KEYCHAIN}" |
               awk -F '"' '/Developer ID Application/ { print $2; exit }'
           )"
 
           if [[ -z "${signing_identity}" ]]; then
-            echo "::error::No Developer ID Application identity found in imported certificate."
-            security find-identity -v -p codesigning "${keychain_path}" || true
+            echo "::error::No Developer ID Application identity found after running fastlane match."
+            security find-identity -v -p codesigning "${SIGNING_KEYCHAIN}" || true
             exit 1
           fi
 
-          {
-            echo "identity=${signing_identity}"
-            echo "keychain=${keychain_path}"
-          } >>"${GITHUB_OUTPUT}"
+          echo "identity=${signing_identity}" >>"${GITHUB_OUTPUT}"
 
       - name: Run tests
         run: swift test
@@ -121,7 +162,7 @@ jobs:
 
       - name: Sign app bundle
         env:
-          SIGNING_IDENTITY: ${{ steps.signing.outputs.identity }}
+          SIGNING_IDENTITY: ${{ steps.developer-id.outputs.identity }}
           SIGNING_KEYCHAIN: ${{ steps.signing.outputs.keychain }}
         run: |
           set -euo pipefail
