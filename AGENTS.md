@@ -59,5 +59,5 @@ searching, and launching local applications.
 
 - Check `git status --short --branch` before editing and before committing.
 - Keep commits focused on the requested change.
-- Commit and push after each code or documentation change.
+- Commit after each code or documentation change; push only when explicitly requested.
 - Do not revert user changes unless the user explicitly asks for that.
