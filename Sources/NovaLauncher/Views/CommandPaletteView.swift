@@ -117,7 +117,11 @@ struct CommandPaletteView: View {
         .glassEffect(paletteGlass, in: paletteShape)
         .glassEffectID("command-palette-search", in: glassNamespace)
         .background {
-            paletteShadowBacking(cornerRadius: 24, elevation: .search)
+            paletteShadowBacking(
+                cornerRadius: 24,
+                elevation: .search,
+                outset: searchShadowOutset
+            )
         }
         .overlay {
             paletteSurfaceStroke(cornerRadius: 24)
@@ -137,7 +141,11 @@ struct CommandPaletteView: View {
         .glassEffect(paletteGlass, in: resultsPanelShape)
         .glassEffectID("command-palette-results", in: glassNamespace)
         .background {
-            paletteShadowBacking(cornerRadius: 20, elevation: .results)
+            paletteShadowBacking(
+                cornerRadius: 20,
+                elevation: .results,
+                outset: resultsShadowOutset
+            )
         }
         .overlay {
             paletteSurfaceStroke(cornerRadius: 20)
@@ -148,16 +156,20 @@ struct CommandPaletteView: View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
     }
 
-    private func paletteShadowBacking(cornerRadius: CGFloat, elevation: PaletteElevation) -> some View {
+    private func paletteShadowBacking(
+        cornerRadius: CGFloat,
+        elevation: PaletteElevation,
+        outset: PaletteShadowOutset
+    ) -> some View {
         ZStack {
             PaletteDropShadowView(
                 cornerRadius: cornerRadius,
                 shadows: shadowLayers(for: elevation),
-                outset: paletteShadowOutset
+                outset: outset
             )
-            .padding(.horizontal, -paletteShadowOutset.horizontal)
-            .padding(.top, -paletteShadowOutset.top)
-            .padding(.bottom, -paletteShadowOutset.bottom)
+            .padding(.horizontal, -outset.horizontal)
+            .padding(.top, -outset.top)
+            .padding(.bottom, -outset.bottom)
 
             if activeColorScheme == .dark {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -187,9 +199,17 @@ struct CommandPaletteView: View {
         ]
     }
 
-    private var paletteShadowOutset: PaletteShadowOutset {
+    private var searchShadowOutset: PaletteShadowOutset {
         PaletteShadowOutset(
-            horizontal: CommandPaletteMetrics.shadowHorizontalPadding,
+            horizontal: CommandPaletteMetrics.searchShadowHorizontalPadding,
+            top: CommandPaletteMetrics.shadowTopPadding,
+            bottom: CommandPaletteMetrics.shadowBottomPadding
+        )
+    }
+
+    private var resultsShadowOutset: PaletteShadowOutset {
+        PaletteShadowOutset(
+            horizontal: CommandPaletteMetrics.resultsShadowHorizontalPadding,
             top: CommandPaletteMetrics.shadowTopPadding,
             bottom: CommandPaletteMetrics.shadowBottomPadding
         )
