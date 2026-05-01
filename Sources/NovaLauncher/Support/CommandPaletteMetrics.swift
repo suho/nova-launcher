@@ -6,7 +6,7 @@ enum CommandPaletteMetrics {
     static let panelSpacing: CGFloat = 8
     static let compactHeight: CGFloat = searchBarHeight
     static let expandedHeight: CGFloat = 448
-    static let shadowPadding: CGFloat = 72
+    static let shadowPadding: CGFloat = 96
 
     static var resultsPanelHeight: CGFloat {
         expandedHeight - searchBarHeight - panelSpacing

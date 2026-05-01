@@ -74,10 +74,23 @@ struct CommandPaletteView: View {
             : .white.opacity(0.94)
     }
 
-    private var paletteStrokeColor: Color {
-        activeColorScheme == .dark
-            ? .white.opacity(0.08)
-            : .black.opacity(0.11)
+    private var paletteStrokeGradient: LinearGradient {
+        let topColor = activeColorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : Color.black.opacity(0.11)
+        let middleColor = activeColorScheme == .dark
+            ? Color.white.opacity(0.05)
+            : Color.black.opacity(0.06)
+
+        return LinearGradient(
+            stops: [
+                .init(color: topColor, location: 0),
+                .init(color: middleColor, location: 0.56),
+                .init(color: .clear, location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     private var searchHeader: some View {
@@ -142,20 +155,20 @@ struct CommandPaletteView: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(paletteBackingFill)
             .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.14 : 0.26),
+                color: .black.opacity(activeColorScheme == .dark ? 0.14 : 0.20),
                 radius: activeColorScheme == .dark ? elevation.darkOuterRadius : elevation.lightOuterRadius,
                 x: 0,
                 y: activeColorScheme == .dark ? elevation.darkOuterOffset : elevation.lightOuterOffset
             )
             .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.09 : 0.18),
-                radius: activeColorScheme == .dark ? 12 : 16,
+                color: .black.opacity(activeColorScheme == .dark ? 0.09 : 0.14),
+                radius: activeColorScheme == .dark ? 12 : 24,
                 x: 0,
-                y: activeColorScheme == .dark ? 5 : 8
+                y: activeColorScheme == .dark ? 5 : 10
             )
             .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.06 : 0.12),
-                radius: activeColorScheme == .dark ? 7 : 9,
+                color: .black.opacity(activeColorScheme == .dark ? 0.06 : 0.09),
+                radius: activeColorScheme == .dark ? 7 : 13,
                 x: 0,
                 y: 0
             )
@@ -163,7 +176,7 @@ struct CommandPaletteView: View {
 
     private func paletteSurfaceStroke(cornerRadius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .strokeBorder(paletteStrokeColor, lineWidth: activeColorScheme == .dark ? 0.5 : 1)
+            .strokeBorder(paletteStrokeGradient, lineWidth: activeColorScheme == .dark ? 0.5 : 1)
     }
 
     @ViewBuilder
@@ -258,18 +271,18 @@ private enum PaletteElevation {
     var lightOuterRadius: CGFloat {
         switch self {
         case .search:
-            38
+            54
         case .results:
-            42
+            58
         }
     }
 
     var lightOuterOffset: CGFloat {
         switch self {
         case .search:
-            18
+            22
         case .results:
-            20
+            24
         }
     }
 
