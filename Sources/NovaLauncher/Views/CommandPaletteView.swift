@@ -150,7 +150,14 @@ struct CommandPaletteView: View {
 
     private func paletteShadowBacking(cornerRadius: CGFloat, elevation: PaletteElevation) -> some View {
         ZStack {
-            PaletteDropShadowView(cornerRadius: cornerRadius, shadows: shadowLayers(for: elevation))
+            PaletteDropShadowView(
+                cornerRadius: cornerRadius,
+                shadows: shadowLayers(for: elevation),
+                outset: paletteShadowOutset
+            )
+            .padding(.horizontal, -paletteShadowOutset.horizontal)
+            .padding(.top, -paletteShadowOutset.top)
+            .padding(.bottom, -paletteShadowOutset.bottom)
 
             if activeColorScheme == .dark {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -176,8 +183,16 @@ struct CommandPaletteView: View {
         return [
             PaletteShadowLayer(opacity: 0.13, radius: elevation.lightOuterRadius, y: elevation.lightOuterOffset),
             PaletteShadowLayer(opacity: 0.10, radius: 42, y: 20),
-            PaletteShadowLayer(opacity: 0.04, radius: 24, y: 0)
+            PaletteShadowLayer(opacity: 0.055, radius: 56, y: 0)
         ]
+    }
+
+    private var paletteShadowOutset: PaletteShadowOutset {
+        PaletteShadowOutset(
+            horizontal: CommandPaletteMetrics.shadowHorizontalPadding,
+            top: CommandPaletteMetrics.shadowTopPadding,
+            bottom: CommandPaletteMetrics.shadowBottomPadding
+        )
     }
 
     @ViewBuilder
@@ -312,24 +327,32 @@ private struct PaletteShadowLayer: Equatable {
     let y: CGFloat
 }
 
+private struct PaletteShadowOutset: Equatable {
+    let horizontal: CGFloat
+    let top: CGFloat
+    let bottom: CGFloat
+}
+
 private struct PaletteDropShadowView: NSViewRepresentable {
     let cornerRadius: CGFloat
     let shadows: [PaletteShadowLayer]
+    let outset: PaletteShadowOutset
 
     func makeNSView(context: Context) -> PaletteDropShadowHostView {
         let view = PaletteDropShadowHostView()
-        view.update(cornerRadius: cornerRadius, shadows: shadows)
+        view.update(cornerRadius: cornerRadius, shadows: shadows, outset: outset)
         return view
     }
 
     func updateNSView(_ nsView: PaletteDropShadowHostView, context: Context) {
-        nsView.update(cornerRadius: cornerRadius, shadows: shadows)
+        nsView.update(cornerRadius: cornerRadius, shadows: shadows, outset: outset)
     }
 }
 
 private final class PaletteDropShadowHostView: NSView {
     private var cornerRadius: CGFloat = 0
     private var shadows: [PaletteShadowLayer] = []
+    private var outset = PaletteShadowOutset(horizontal: 0, top: 0, bottom: 0)
     private var shadowLayers: [CALayer] = []
 
     override init(frame frameRect: NSRect) {
@@ -344,13 +367,14 @@ private final class PaletteDropShadowHostView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(cornerRadius: CGFloat, shadows: [PaletteShadowLayer]) {
-        guard self.cornerRadius != cornerRadius || self.shadows != shadows else {
+    func update(cornerRadius: CGFloat, shadows: [PaletteShadowLayer], outset: PaletteShadowOutset) {
+        guard self.cornerRadius != cornerRadius || self.shadows != shadows || self.outset != outset else {
             return
         }
 
         self.cornerRadius = cornerRadius
         self.shadows = shadows
+        self.outset = outset
         rebuildShadowLayers()
         needsLayout = true
     }
@@ -378,8 +402,14 @@ private final class PaletteDropShadowHostView: NSView {
     }
 
     private func updateShadowLayerFrames() {
+        let surfaceRect = NSRect(
+            x: bounds.minX + outset.horizontal,
+            y: bounds.minY + outset.bottom,
+            width: max(0, bounds.width - outset.horizontal * 2),
+            height: max(0, bounds.height - outset.top - outset.bottom)
+        )
         let shadowPath = CGPath(
-            roundedRect: bounds,
+            roundedRect: surfaceRect,
             cornerWidth: cornerRadius,
             cornerHeight: cornerRadius,
             transform: nil
