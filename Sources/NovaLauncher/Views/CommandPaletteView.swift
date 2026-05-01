@@ -150,7 +150,7 @@ struct CommandPaletteView: View {
 
     private var resultsList: some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ResultListScrollView {
                 LazyVStack(spacing: 4) {
                     ForEach(store.filteredItems) { item in
                         AppResultRow(
@@ -167,10 +167,10 @@ struct CommandPaletteView: View {
                         }
                     }
                 }
-                .padding(10)
+                .padding(.leading, 10)
+                .padding(.trailing, 24)
+                .padding(.vertical, 10)
             }
-            .scrollContentBackground(.hidden)
-            .background(Color.clear)
             .onChange(of: store.selectedID) { _, selectedID in
                 guard let selectedID else {
                     return
@@ -221,6 +221,133 @@ struct CommandPaletteView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+}
+
+private struct ResultListScrollView<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var contentHeight: CGFloat = 0
+    @State private var scrollOffset: CGFloat = 0
+
+    private let coordinateSpaceName = "result-list-scroll-view"
+
+    var body: some View {
+        GeometryReader { viewportProxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                content()
+                    .background {
+                        GeometryReader { contentProxy in
+                            Color.clear.preference(
+                                key: ResultListScrollMetricsPreferenceKey.self,
+                                value: ResultListScrollMetrics(
+                                    contentHeight: contentProxy.size.height,
+                                    contentMinY: contentProxy.frame(in: .named(coordinateSpaceName)).minY
+                                )
+                            )
+                        }
+                    }
+            }
+            .coordinateSpace(name: coordinateSpaceName)
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
+            .overlay(alignment: .trailing) {
+                ResultListScrollIndicator(
+                    viewportHeight: viewportProxy.size.height,
+                    contentHeight: contentHeight,
+                    scrollOffset: scrollOffset,
+                    colorScheme: colorScheme
+                )
+                .padding(.vertical, 12)
+                .padding(.trailing, 8)
+                .allowsHitTesting(false)
+            }
+            .onPreferenceChange(ResultListScrollMetricsPreferenceKey.self) { metrics in
+                contentHeight = metrics.contentHeight
+                scrollOffset = max(0, -metrics.contentMinY)
+            }
+        }
+    }
+}
+
+private struct ResultListScrollIndicator: View {
+    let viewportHeight: CGFloat
+    let contentHeight: CGFloat
+    let scrollOffset: CGFloat
+    let colorScheme: ColorScheme
+
+    private let trackWidth: CGFloat = 4
+    private let minimumThumbHeight: CGFloat = 34
+
+    var body: some View {
+        if isScrollable, trackHeight > 0 {
+            ZStack(alignment: .top) {
+                Capsule()
+                    .fill(trackColor)
+                    .frame(width: trackWidth, height: trackHeight)
+
+                Capsule()
+                    .fill(thumbColor)
+                    .frame(width: trackWidth, height: thumbHeight)
+                    .shadow(color: thumbShadowColor, radius: 1.5, x: 0, y: 0.5)
+                    .offset(y: thumbOffset)
+            }
+            .frame(width: 10, height: trackHeight, alignment: .top)
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var isScrollable: Bool {
+        contentHeight > viewportHeight + 1
+    }
+
+    private var trackHeight: CGFloat {
+        max(0, viewportHeight - 24)
+    }
+
+    private var thumbHeight: CGFloat {
+        guard contentHeight > 0 else {
+            return minimumThumbHeight
+        }
+
+        return min(
+            trackHeight,
+            max(minimumThumbHeight, viewportHeight / contentHeight * trackHeight)
+        )
+    }
+
+    private var thumbOffset: CGFloat {
+        let maxScrollableOffset = max(1, contentHeight - viewportHeight)
+        let maxThumbOffset = max(0, trackHeight - thumbHeight)
+        let clampedOffset = min(max(scrollOffset, 0), maxScrollableOffset)
+
+        return clampedOffset / maxScrollableOffset * maxThumbOffset
+    }
+
+    private var trackColor: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.08)
+    }
+
+    private var thumbColor: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.36 : 0.24)
+    }
+
+    private var thumbShadowColor: Color {
+        Color.black.opacity(colorScheme == .dark ? 0.28 : 0.10)
+    }
+}
+
+private struct ResultListScrollMetrics: Equatable {
+    var contentHeight: CGFloat = 0
+    var contentMinY: CGFloat = 0
+}
+
+private struct ResultListScrollMetricsPreferenceKey: PreferenceKey {
+    static let defaultValue = ResultListScrollMetrics()
+
+    static func reduce(value: inout ResultListScrollMetrics, nextValue: () -> ResultListScrollMetrics) {
+        value = nextValue()
     }
 }
 
