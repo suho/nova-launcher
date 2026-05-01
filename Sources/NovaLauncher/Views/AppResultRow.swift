@@ -68,6 +68,17 @@ struct AppResultRow: View {
                     .foregroundStyle(.primary)
             }
             .frame(width: 36, height: 36)
+        case .webURL:
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.secondary.opacity(0.12))
+
+                Image(systemName: "globe")
+                    .font(.system(size: 18, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.primary)
+            }
+            .frame(width: 36, height: 36)
         }
     }
 

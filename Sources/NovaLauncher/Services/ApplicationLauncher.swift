@@ -16,4 +16,8 @@ final class ApplicationLauncher {
             }
         }
     }
+
+    func open(_ url: URL, completion: @escaping (Bool) -> Void) {
+        completion(NSWorkspace.shared.open(url))
+    }
 }

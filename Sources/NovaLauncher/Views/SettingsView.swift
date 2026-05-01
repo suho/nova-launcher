@@ -347,6 +347,17 @@ private struct ItemConfigurationRow: View, Equatable {
                     .foregroundStyle(.primary)
             }
             .frame(width: 28, height: 28)
+        case .webURL:
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(.secondary.opacity(0.12))
+
+                Image(systemName: "globe")
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.primary)
+            }
+            .frame(width: 28, height: 28)
         }
     }
 }

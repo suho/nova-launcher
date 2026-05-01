@@ -134,6 +134,8 @@ final class LauncherStore: ObservableObject {
             open(application, itemID: item.id, completion: completion)
         case .windowCommand(let command):
             perform(command, itemID: item.id, completion: completion)
+        case .webURL(let webURL):
+            open(webURL, itemID: item.id, completion: completion)
         }
     }
 
@@ -154,6 +156,8 @@ final class LauncherStore: ObservableObject {
                 noPermissionReason: "Grant Accessibility permission, then try again",
                 completion: {}
             )
+        case .webURL:
+            break
         }
     }
 
@@ -187,7 +191,7 @@ final class LauncherStore: ObservableObject {
 
     func subtitle(for item: LauncherItem) -> String {
         switch item {
-        case .application:
+        case .application, .webURL:
             return item.subtitle
         case .windowCommand(let command):
             guard let focusedWindowDescription else {
@@ -226,6 +230,29 @@ final class LauncherStore: ObservableObject {
                 self.selectedID = nil
                 self.statusMessage = "Opened \(application.name)"
                 completion()
+            }
+
+            self.openingID = nil
+        }
+    }
+
+    private func open(_ webURL: WebURLItem, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
+        openingID = itemID
+        statusMessage = "Opening \(webURL.displayString)"
+
+        launcher.open(webURL.url) { [weak self] success in
+            guard let self else {
+                completion()
+                return
+            }
+
+            if success {
+                self.query = ""
+                self.selectedID = nil
+                self.statusMessage = "Opened \(webURL.displayString)"
+                completion()
+            } else {
+                self.statusMessage = "Could not open \(webURL.displayString)"
             }
 
             self.openingID = nil
@@ -280,7 +307,15 @@ final class LauncherStore: ObservableObject {
     }
 
     private func updateFilteredItems() {
-        filteredItems = FuzzyMatcher.match(query: query, in: searchableItems, limit: 8)
+        let resultLimit = 8
+        let matchedItems = FuzzyMatcher.match(query: query, in: searchableItems, limit: resultLimit)
+
+        if let webURL = WebURLItem(query: query) {
+            filteredItems = [LauncherItem.webURL(webURL)] + matchedItems.prefix(resultLimit - 1)
+        } else {
+            filteredItems = matchedItems
+        }
+
         selectedID = filteredItems.first?.id
     }
 

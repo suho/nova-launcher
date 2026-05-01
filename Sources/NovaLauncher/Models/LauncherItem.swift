@@ -3,6 +3,7 @@ import Foundation
 enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
     case application(ApplicationEntry)
     case windowCommand(WindowCommand)
+    case webURL(WebURLItem)
 
     var id: String {
         switch self {
@@ -10,6 +11,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             "app:\(application.id)"
         case .windowCommand(let command):
             "window:\(command.id)"
+        case .webURL(let webURL):
+            "url:\(webURL.id)"
         }
     }
 
@@ -19,6 +22,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             application.name
         case .windowCommand(let command):
             command.title
+        case .webURL:
+            "Open URL"
         }
     }
 
@@ -28,6 +33,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             application.subtitle
         case .windowCommand(let command):
             command.defaultSubtitle
+        case .webURL(let webURL):
+            webURL.displayString
         }
     }
 
@@ -41,6 +48,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             application.searchableName
         case .windowCommand(let command):
             command.searchableName
+        case .webURL(let webURL):
+            webURL.displayString.lowercased()
         }
     }
 
@@ -48,7 +57,7 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
         switch self {
         case .application(let application):
             application.searchCharacters
-        case .windowCommand:
+        case .windowCommand, .webURL:
             Array(searchableName)
         }
     }
