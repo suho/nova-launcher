@@ -18,13 +18,13 @@ struct ErrorToast: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                    .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .frame(width: width, alignment: .leading)
-            .frame(minHeight: 54, alignment: .leading)
+            .frame(width: width, alignment: .center)
+            .frame(minHeight: 54, alignment: .center)
             .glassEffect(toastGlass, in: toastShape)
             .glassEffectID("error-toast", in: glassNamespace)
             .background {
@@ -43,33 +43,19 @@ struct ErrorToast: View {
 
     private var toastGlass: Glass {
         .clear
-            .tint(toastSurfaceTint)
             .interactive()
     }
 
-    private var toastSurfaceTint: Color {
-        colorScheme == .dark
-            ? .black.opacity(0.74)
-            : .clear
-    }
-
     private var toastShadowBacking: some View {
-        ZStack {
-            toastShape
-                .fill(.black.opacity(colorScheme == .dark ? 0.16 : 0.001))
-                .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.14 : 0.13),
-                    radius: colorScheme == .dark ? 30 : 86,
-                    y: colorScheme == .dark ? 16 : 34
-                )
-                .shadow(color: .black.opacity(colorScheme == .dark ? 0.09 : 0.10), radius: 12, y: 5)
-                .shadow(color: .black.opacity(colorScheme == .dark ? 0.06 : 0.055), radius: 7, y: 0)
-
-            if colorScheme == .dark {
-                toastShape
-                    .fill(.black.opacity(0.16))
-            }
-        }
+        toastShape
+            .fill(.black.opacity(0.001))
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.14 : 0.13),
+                radius: colorScheme == .dark ? 30 : 86,
+                y: colorScheme == .dark ? 16 : 34
+            )
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.09 : 0.10), radius: 12, y: 5)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.06 : 0.055), radius: 7, y: 0)
     }
 
     private var toastSurfaceStroke: some View {
