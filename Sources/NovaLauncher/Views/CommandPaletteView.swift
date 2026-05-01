@@ -150,6 +150,15 @@ struct CommandPaletteView: View {
         .overlay {
             paletteSurfaceStroke(cornerRadius: 20)
         }
+        .overlay(alignment: .bottomTrailing) {
+            if let errorToastMessage = store.errorToastMessage {
+                ErrorToast(message: errorToastMessage)
+                    .padding(.trailing, 14)
+                    .padding(.bottom, 48)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.snappy(duration: 0.18), value: store.errorToastMessage)
     }
 
     private var resultsPanelShape: RoundedRectangle {
@@ -281,20 +290,8 @@ struct CommandPaletteView: View {
             FooterShortcut(symbol: "arrow.up.arrow.down", label: "Select")
             FooterShortcut(symbol: "return", label: "Open")
             FooterShortcut(symbol: "escape", label: "Close")
-
-            Spacer()
-
-            if let statusMessage = store.statusMessage {
-                Text(statusMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            } else {
-                Text("Local index")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
     }
@@ -455,5 +452,33 @@ private struct FooterShortcut: View {
                 .font(.caption)
         }
         .foregroundStyle(.secondary)
+    }
+}
+
+private struct ErrorToast: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+
+            Text(message)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(maxWidth: 300, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
+        .accessibilityElement(children: .combine)
     }
 }

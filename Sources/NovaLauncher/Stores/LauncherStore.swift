@@ -20,7 +20,7 @@ final class LauncherStore: ObservableObject {
     }
     @Published var selectedID: LauncherItem.ID?
     @Published var openingID: LauncherItem.ID?
-    @Published var statusMessage: String?
+    @Published private(set) var errorToastMessage: String?
     @Published private(set) var focusedWindowDescription: String?
     @Published private(set) var windowCommandUnavailableReason = "Focus a window before opening Nova"
     @Published private(set) var shouldKeepPaletteOpenForAccessibilityRequest = false
@@ -29,6 +29,7 @@ final class LauncherStore: ObservableObject {
     private let launcher = ApplicationLauncher()
     private let windowManager = WindowManagementService()
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var errorToastDismissTask: Task<Void, Never>?
     private var focusedWindow: FocusedWindowContext?
     let commandItems = WindowCommand.allCases.map(LauncherItem.windowCommand)
     var onItemConfigurationsChanged: (() -> Void)?
@@ -54,6 +55,7 @@ final class LauncherStore: ObservableObject {
         query = ""
         selectedID = nil
         openingID = nil
+        clearErrorToast()
         focusedWindow = nil
         focusedWindowDescription = nil
         windowCommandUnavailableReason = "Checking focused window"
@@ -217,7 +219,7 @@ final class LauncherStore: ObservableObject {
 
     private func open(_ application: ApplicationEntry, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
         openingID = itemID
-        statusMessage = "Opening \(application.name)"
+        clearErrorToast()
 
         launcher.open(application) { [weak self] success in
             guard let self else {
@@ -228,8 +230,10 @@ final class LauncherStore: ObservableObject {
             if success {
                 self.query = ""
                 self.selectedID = nil
-                self.statusMessage = "Opened \(application.name)"
+                self.clearErrorToast()
                 completion()
+            } else {
+                self.showErrorToast("Could not open \(application.name)")
             }
 
             self.openingID = nil
@@ -238,7 +242,7 @@ final class LauncherStore: ObservableObject {
 
     private func open(_ webURL: WebURLItem, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
         openingID = itemID
-        statusMessage = "Opening \(webURL.displayString)"
+        clearErrorToast()
 
         launcher.open(webURL.url) { [weak self] success in
             guard let self else {
@@ -249,10 +253,10 @@ final class LauncherStore: ObservableObject {
             if success {
                 self.query = ""
                 self.selectedID = nil
-                self.statusMessage = "Opened \(webURL.displayString)"
+                self.clearErrorToast()
                 completion()
             } else {
-                self.statusMessage = "Could not open \(webURL.displayString)"
+                self.showErrorToast("Could not open \(webURL.displayString)")
             }
 
             self.openingID = nil
@@ -272,12 +276,13 @@ final class LauncherStore: ObservableObject {
         completion: @escaping () -> Void
     ) {
         openingID = itemID
+        clearErrorToast()
 
         guard requestAccessibilityForWindowCommand() else {
             focusedWindow = nil
             focusedWindowDescription = nil
             windowCommandUnavailableReason = noPermissionReason
-            statusMessage = noPermissionReason
+            showErrorToast(noPermissionReason)
             openingID = nil
             return
         }
@@ -289,21 +294,43 @@ final class LauncherStore: ObservableObject {
         )
 
         guard let commandContext else {
-            statusMessage = noWindowReason
+            showErrorToast(noWindowReason)
             openingID = nil
             return
         }
 
         do {
-            statusMessage = try windowManager.perform(command, on: commandContext)
+            _ = try windowManager.perform(command, on: commandContext)
             query = ""
             selectedID = nil
+            clearErrorToast()
             completion()
         } catch {
-            statusMessage = error.localizedDescription
+            showErrorToast(error.localizedDescription)
         }
 
         openingID = nil
+    }
+
+    private func showErrorToast(_ message: String) {
+        errorToastDismissTask?.cancel()
+        errorToastMessage = message
+        errorToastDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            self?.errorToastMessage = nil
+            self?.errorToastDismissTask = nil
+        }
+    }
+
+    private func clearErrorToast() {
+        errorToastDismissTask?.cancel()
+        errorToastDismissTask = nil
+        errorToastMessage = nil
     }
 
     private func updateFilteredItems() {
