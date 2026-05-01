@@ -23,7 +23,9 @@ struct CommandPaletteView: View {
                 height: CommandPaletteMetrics.contentHeight(isExpanded: isExpanded)
             )
         }
-        .padding(CommandPaletteMetrics.shadowPadding)
+        .padding(.horizontal, CommandPaletteMetrics.shadowHorizontalPadding)
+        .padding(.top, CommandPaletteMetrics.shadowTopPadding)
+        .padding(.bottom, CommandPaletteMetrics.shadowBottomPadding)
         .frame(
             width: CommandPaletteMetrics.windowSize(isExpanded: isExpanded).width,
             height: CommandPaletteMetrics.windowSize(isExpanded: isExpanded).height
@@ -155,22 +157,22 @@ struct CommandPaletteView: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(paletteBackingFill)
             .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.14 : 0.20),
+                color: .black.opacity(activeColorScheme == .dark ? 0.14 : 0.13),
                 radius: activeColorScheme == .dark ? elevation.darkOuterRadius : elevation.lightOuterRadius,
                 x: 0,
                 y: activeColorScheme == .dark ? elevation.darkOuterOffset : elevation.lightOuterOffset
             )
             .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.09 : 0.14),
-                radius: activeColorScheme == .dark ? 12 : 24,
+                color: .black.opacity(activeColorScheme == .dark ? 0.09 : 0.11),
+                radius: activeColorScheme == .dark ? 12 : 38,
                 x: 0,
-                y: activeColorScheme == .dark ? 5 : 10
+                y: activeColorScheme == .dark ? 5 : 18
             )
             .shadow(
-                color: .black.opacity(activeColorScheme == .dark ? 0.06 : 0.09),
-                radius: activeColorScheme == .dark ? 7 : 13,
+                color: .black.opacity(activeColorScheme == .dark ? 0.06 : 0.05),
+                radius: activeColorScheme == .dark ? 7 : 20,
                 x: 0,
-                y: 0
+                y: activeColorScheme == .dark ? 0 : 2
             )
     }
 
@@ -271,18 +273,18 @@ private enum PaletteElevation {
     var lightOuterRadius: CGFloat {
         switch self {
         case .search:
-            54
+            86
         case .results:
-            58
+            92
         }
     }
 
     var lightOuterOffset: CGFloat {
         switch self {
         case .search:
-            22
+            34
         case .results:
-            24
+            36
         }
     }
 

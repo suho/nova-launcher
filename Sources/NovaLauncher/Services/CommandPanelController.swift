@@ -92,9 +92,11 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
     private func center(_ panel: NSPanel) {
         let screenFrame = NSScreen.main?.visibleFrame ?? NSScreen.screens.first?.visibleFrame ?? .zero
         let panelFrame = panel.frame
+        let contentCenterOffset = CommandPaletteMetrics.contentCenterOffsetFromWindowTop(isExpanded: false)
+        let desiredContentCenterY = screenFrame.midY + 64
         let origin = NSPoint(
             x: screenFrame.midX - panelFrame.width / 2,
-            y: screenFrame.midY - panelFrame.height / 2 + 64
+            y: desiredContentCenterY - panelFrame.height + contentCenterOffset
         )
 
         panel.setFrameOrigin(origin)
