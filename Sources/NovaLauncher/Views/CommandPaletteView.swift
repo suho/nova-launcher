@@ -95,16 +95,22 @@ struct CommandPaletteView: View {
         .glassEffect(paletteGlass, in: paletteShape)
         .glassEffectID("command-palette-search", in: glassNamespace)
         .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.12 : 0.035),
-            radius: activeColorScheme == .dark ? 30 : 34,
+            color: .black.opacity(activeColorScheme == .dark ? 0.12 : 0.13),
+            radius: activeColorScheme == .dark ? 30 : 42,
             x: 0,
-            y: activeColorScheme == .dark ? 16 : 14
+            y: activeColorScheme == .dark ? 16 : 20
         )
         .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.08 : 0.025),
+            color: .black.opacity(activeColorScheme == .dark ? 0.08 : 0.065),
             radius: activeColorScheme == .dark ? 12 : 18,
             x: 0,
-            y: activeColorScheme == .dark ? 5 : 4
+            y: activeColorScheme == .dark ? 5 : 6
+        )
+        .shadow(
+            color: .black.opacity(activeColorScheme == .dark ? 0 : 0.055),
+            radius: activeColorScheme == .dark ? 8 : 12,
+            x: 0,
+            y: 0
         )
     }
 
@@ -121,16 +127,22 @@ struct CommandPaletteView: View {
         .glassEffect(paletteGlass, in: resultsPanelShape)
         .glassEffectID("command-palette-results", in: glassNamespace)
         .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.10 : 0.03),
-            radius: activeColorScheme == .dark ? 28 : 32,
+            color: .black.opacity(activeColorScheme == .dark ? 0.10 : 0.11),
+            radius: activeColorScheme == .dark ? 28 : 40,
             x: 0,
-            y: activeColorScheme == .dark ? 14 : 12
+            y: activeColorScheme == .dark ? 14 : 18
         )
         .shadow(
-            color: .black.opacity(activeColorScheme == .dark ? 0.07 : 0.02),
-            radius: activeColorScheme == .dark ? 10 : 16,
+            color: .black.opacity(activeColorScheme == .dark ? 0.07 : 0.06),
+            radius: activeColorScheme == .dark ? 10 : 17,
             x: 0,
-            y: activeColorScheme == .dark ? 4 : 3
+            y: activeColorScheme == .dark ? 4 : 5
+        )
+        .shadow(
+            color: .black.opacity(activeColorScheme == .dark ? 0 : 0.05),
+            radius: activeColorScheme == .dark ? 7 : 11,
+            x: 0,
+            y: 0
         )
     }
 
