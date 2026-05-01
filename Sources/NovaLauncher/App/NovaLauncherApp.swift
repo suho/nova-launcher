@@ -17,7 +17,6 @@ struct NovaLauncherApp: App {
                 store: services.launcherStore,
                 hotKeyManager: services.hotKeyManager
             )
-            .preferredColorScheme(currentTheme.colorScheme)
             .onAppear {
                 AppearanceService.apply(currentTheme)
             }

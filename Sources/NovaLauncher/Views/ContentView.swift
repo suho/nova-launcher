@@ -26,7 +26,6 @@ struct ContentView: View {
             }
             .background(.background)
         }
-        .preferredColorScheme(currentTheme.colorScheme)
         .onAppear {
             AppearanceService.apply(currentTheme)
         }

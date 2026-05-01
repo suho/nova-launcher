@@ -22,7 +22,6 @@ struct CommandPaletteView: View {
                 width: CommandPaletteMetrics.contentWidth,
                 height: CommandPaletteMetrics.contentHeight(isExpanded: isExpanded)
             )
-            .preferredColorScheme(currentTheme.colorScheme)
         }
         .padding(CommandPaletteMetrics.shadowPadding)
         .frame(
@@ -46,7 +45,7 @@ struct CommandPaletteView: View {
     }
 
     private var activeColorScheme: ColorScheme {
-        currentTheme.colorScheme ?? colorScheme
+        colorScheme
     }
 
     private var isExpanded: Bool {
