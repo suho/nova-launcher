@@ -72,23 +72,41 @@ GitHub Actions, signs and notarizes the app, creates a GitHub release with
 `NovaLauncher-<version>.zip`, computes the SHA-256 checksum, and dispatches
 `suho/homebrew-tap` to update the cask.
 
-The `suho/nova-launcher` repository must have these secrets:
+Signing uses `fastlane match` to install the Developer ID Application
+certificate into a temporary CI keychain. Notarization uses an App Store Connect
+API key with `notarytool`; this workflow does not use Apple ID app-specific
+password notarization.
+
+The `suho/nova-launcher` repository must have these GitHub Actions secrets:
 
 - `MATCH_GIT_URL`: private fastlane match repository URL.
 - `MATCH_PASSWORD`: fastlane match encryption password.
 - `MATCH_GIT_BASIC_AUTHORIZATION`: optional HTTPS credential for the match repo,
   base64-encoded as `username:token`.
 - `MATCH_GIT_PRIVATE_KEY`: optional SSH private key contents for the match repo.
-- `APPLE_ID`: Apple ID email used for notarization.
-- `APPLE_TEAM_ID`: Apple Developer team ID.
-- `APPLE_APP_SPECIFIC_PASSWORD`: app-specific password for notarization.
+- `APP_STORE_CONNECT_API_KEY_ID`: App Store Connect API key ID.
+- `APP_STORE_CONNECT_API_ISSUER_ID`: App Store Connect API issuer ID.
+- `APP_STORE_CONNECT_API_KEY_BASE64`: base64-encoded App Store Connect `.p8`
+  API key.
 - `HOMEBREW_TAP_TOKEN`: fine-grained GitHub token scoped to `suho/homebrew-tap`
   with Contents read/write permission.
+
+These older notarization secrets are not used:
+
+- `APPLE_ID`
+- `APPLE_TEAM_ID`
+- `APPLE_APP_SPECIFIC_PASSWORD`
 
 The match repository must already contain a Developer ID Application
 certificate. CI runs `fastlane match developer_id --readonly` and only installs
 existing signing assets. For a private match repository, provide either
 `MATCH_GIT_BASIC_AUTHORIZATION` or `MATCH_GIT_PRIVATE_KEY`.
+
+Encode the App Store Connect `.p8` key with:
+
+```bash
+base64 -i AuthKey_<key-id>.p8 | pbcopy
+```
 
 ```bash
 git tag v0.1.0

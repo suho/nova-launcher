@@ -183,25 +183,30 @@ jobs:
 
       - name: Notarize and staple app
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
 
-          if [[ -z "${APPLE_ID:-}" || -z "${APPLE_TEAM_ID:-}" || -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]]; then
-            echo "::error::Set APPLE_ID, APPLE_TEAM_ID, and APPLE_APP_SPECIFIC_PASSWORD secrets for notarization."
+          if [[ -z "${APP_STORE_CONNECT_API_KEY_ID:-}" || -z "${APP_STORE_CONNECT_API_ISSUER_ID:-}" || -z "${APP_STORE_CONNECT_API_KEY_BASE64:-}" ]]; then
+            echo "::error::Set APP_STORE_CONNECT_API_KEY_ID, APP_STORE_CONNECT_API_ISSUER_ID, and APP_STORE_CONNECT_API_KEY_BASE64 secrets for notarization."
             exit 1
           fi
 
+          api_key_path="${RUNNER_TEMP}/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
           notarization_zip="${RUNNER_TEMP}/${APP_NAME}-${VERSION}-notarization.zip"
+
+          printf '%s' "${APP_STORE_CONNECT_API_KEY_BASE64}" | base64 --decode >"${api_key_path}"
+          chmod 600 "${api_key_path}"
+
           ditto -c -k --keepParent "dist/${APP_NAME}.app" "${notarization_zip}"
 
           xcrun notarytool submit "${notarization_zip}" \
-            --apple-id "${APPLE_ID}" \
-            --team-id "${APPLE_TEAM_ID}" \
-            --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+            --key "${api_key_path}" \
+            --key-id "${APP_STORE_CONNECT_API_KEY_ID}" \
+            --issuer "${APP_STORE_CONNECT_API_ISSUER_ID}" \
             --wait
 
           xcrun stapler staple "dist/${APP_NAME}.app"
