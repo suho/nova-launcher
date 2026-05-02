@@ -42,10 +42,20 @@ struct SettingsView: View {
         }
         .frame(width: 760, height: 520)
         .scenePadding()
-        .onAppear(perform: refreshAccessibilityPermission)
+        .onAppear {
+            AppearanceService.apply(currentTheme)
+            refreshAccessibilityPermission()
+        }
+        .onChange(of: themeRawValue) { _, newValue in
+            AppearanceService.apply(rawValue: newValue)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshAccessibilityPermission()
         }
+    }
+
+    private var currentTheme: AppTheme {
+        AppTheme(rawValue: themeRawValue) ?? .system
     }
 
     private var generalTab: some View {

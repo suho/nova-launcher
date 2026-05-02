@@ -96,11 +96,9 @@ final class ShortcutRecorderControl: NSView {
         wantsLayer = true
         layer?.cornerRadius = 8
         layer?.cornerCurve = .continuous
-        layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
 
         label.alignment = .center
         label.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
-        label.textColor = .labelColor
         label.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(label)
@@ -165,7 +163,13 @@ final class ShortcutRecorderControl: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        updateColors()
         startRecordingOnAppearIfNeeded()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
     }
 
     func startRecordingOnAppearIfNeeded() {
@@ -179,9 +183,16 @@ final class ShortcutRecorderControl: NSView {
 
     func updateLabel() {
         label.stringValue = isRecording ? "Press Shortcut" : shortcut?.displayString ?? placeholder
-        label.textColor = shortcut == nil ? .secondaryLabelColor : .labelColor
         layer?.borderWidth = isRecording ? 1 : 0
-        layer?.borderColor = NSColor.keyboardFocusIndicatorColor.cgColor
+        updateColors()
+    }
+
+    private func updateColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+            layer?.borderColor = NSColor.keyboardFocusIndicatorColor.cgColor
+            label.textColor = shortcut == nil ? .secondaryLabelColor : .labelColor
+        }
     }
 
     private func beginRecording() {
