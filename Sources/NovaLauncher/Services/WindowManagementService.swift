@@ -65,7 +65,7 @@ final class WindowManagementService {
             return "Maximized \(context.applicationName)"
         case .nextDesktop:
             guard let windowID = context.windowID else {
-                throw WindowManagementError.windowNumberUnavailable
+                throw WindowManagementError.desktopWindowIdentifierUnavailable
             }
 
             try spacesController.moveWindowToNextDesktop(
@@ -250,8 +250,9 @@ private enum WindowManagementError: LocalizedError {
     case noNextDesktop
     case spacesUnavailable
     case unableToMoveWindow
+    case unableToMoveWindowToNextDesktop
     case unsupportedWindow
-    case windowNumberUnavailable
+    case desktopWindowIdentifierUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -267,10 +268,12 @@ private enum WindowManagementError: LocalizedError {
             "Desktop spaces are unavailable"
         case .unableToMoveWindow:
             "The focused window could not be moved"
+        case .unableToMoveWindowToNextDesktop:
+            "Could not move the focused window to the next desktop"
         case .unsupportedWindow:
             "The focused window does not support this action"
-        case .windowNumberUnavailable:
-            "Could not identify the focused window"
+        case .desktopWindowIdentifierUnavailable:
+            "This window cannot be moved to another desktop"
         }
     }
 }
@@ -343,7 +346,7 @@ private final class SpacesController {
         let result = moveWindowsToManagedSpace(connection, windows, nextSpaceID)
 
         guard result == 0 else {
-            throw WindowManagementError.unableToMoveWindow
+            throw WindowManagementError.unableToMoveWindowToNextDesktop
         }
     }
 
