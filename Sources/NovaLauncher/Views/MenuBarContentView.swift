@@ -1,13 +1,12 @@
-import AppKit
 import SwiftUI
 
 struct MenuBarContentView: View {
     @ObservedObject var store: LauncherStore
     let openLauncher: () -> Void
+    let openSettings: () -> Void
 
     @AppStorage(KeyboardShortcut.keyCodeDefaultsKey) private var shortcutKeyCode = Int(KeyboardShortcut.defaultShortcut.keyCode)
     @AppStorage(KeyboardShortcut.modifiersDefaultsKey) private var shortcutModifiers = Int(KeyboardShortcut.defaultShortcut.modifiers)
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Button("Open Launcher") {
@@ -29,7 +28,6 @@ struct MenuBarContentView: View {
 
         Button("Settings") {
             openSettings()
-            NSApp.activate(ignoringOtherApps: true)
         }
 
         Button("Quit") {

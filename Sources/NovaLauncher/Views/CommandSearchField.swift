@@ -14,11 +14,13 @@ struct CommandSearchField: NSViewRepresentable {
     let onMove: (SearchMove) -> Void
     let onSubmit: () -> Void
     let onEscape: () -> Void
+    let onOpenSettings: () -> Void
 
     func makeNSView(context: Context) -> SearchFieldHostView {
         let hostView = SearchFieldHostView()
         hostView.appearance = appearance
         let textField = hostView.textField
+        textField.onOpenSettings = onOpenSettings
         textField.delegate = context.coordinator
         textField.isBordered = false
         textField.drawsBackground = false
@@ -47,6 +49,7 @@ struct CommandSearchField: NSViewRepresentable {
         }
 
         textField.placeholderAttributedString = placeholderString
+        textField.onOpenSettings = onOpenSettings
         context.coordinator.onMove = onMove
         context.coordinator.onSubmit = onSubmit
         context.coordinator.onEscape = onEscape
@@ -151,7 +154,27 @@ final class SearchFieldHostView: NSView {
 }
 
 final class KeyHandlingTextField: NSTextField {
+    var onOpenSettings: (() -> Void)?
+
     override var intrinsicContentSize: NSSize {
         NSSize(width: NSView.noIntrinsicMetric, height: 36)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.isCommandCommaShortcut {
+            onOpenSettings?()
+            return true
+        }
+
+        return super.performKeyEquivalent(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.isCommandCommaShortcut {
+            onOpenSettings?()
+            return
+        }
+
+        super.keyDown(with: event)
     }
 }

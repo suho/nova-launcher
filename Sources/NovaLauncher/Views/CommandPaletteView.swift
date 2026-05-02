@@ -4,6 +4,7 @@ import SwiftUI
 struct CommandPaletteView: View {
     @ObservedObject var store: LauncherStore
     let dismiss: () -> Void
+    let openSettings: () -> Void
     let onLayoutChange: (Bool) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -107,7 +108,8 @@ struct CommandPaletteView: View {
                 onSubmit: {
                     store.openSelected(completion: dismiss)
                 },
-                onEscape: dismiss
+                onEscape: dismiss,
+                onOpenSettings: openSettings
             )
             .frame(height: 38)
         }

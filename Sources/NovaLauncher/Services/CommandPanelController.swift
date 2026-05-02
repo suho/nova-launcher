@@ -6,6 +6,7 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
     private let store: LauncherStore
     private var panel: CommandPanel?
     private var sessionRefreshTask: Task<Void, Never>?
+    var onOpenSettings: (() -> Void)?
 
     init(store: LauncherStore) {
         self.store = store
@@ -52,6 +53,7 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         let rootView = CommandPaletteView(
             store: store,
             dismiss: { [weak self] in self?.close() },
+            openSettings: { [weak self] in self?.openSettingsFromPanel() },
             onLayoutChange: { [weak self] isExpanded in
                 self?.setPaletteExpanded(isExpanded, animated: false)
             }
@@ -68,6 +70,9 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         )
 
         panel.delegate = self
+        panel.onOpenSettings = { [weak self] in
+            self?.openSettingsFromPanel()
+        }
         panel.contentView = hostingView
         panel.setContentSize(initialSize)
         panel.backgroundColor = .clear
@@ -101,6 +106,11 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
         panel.orderFrontRegardless()
         panel.makeKey()
         panel.displayIfNeeded()
+    }
+
+    private func openSettingsFromPanel() {
+        close()
+        onOpenSettings?()
     }
 
     private func scheduleSessionRefresh(for panel: NSPanel) {
@@ -143,11 +153,22 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
 }
 
 final class CommandPanel: NSPanel {
+    var onOpenSettings: (() -> Void)?
+
     override var canBecomeKey: Bool {
         true
     }
 
     override var canBecomeMain: Bool {
         false
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.isCommandCommaShortcut {
+            onOpenSettings?()
+            return true
+        }
+
+        return super.performKeyEquivalent(with: event)
     }
 }
