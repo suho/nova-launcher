@@ -74,8 +74,7 @@ GitHub Actions, signs and notarizes the app, creates a GitHub release with
 
 Signing uses `fastlane match` to install the Developer ID Application
 certificate into a temporary CI keychain. Notarization uses an App Store Connect
-API key with `notarytool`; this workflow does not use Apple ID app-specific
-password notarization.
+API key with `notarytool`.
 
 The `suho/nova-launcher` repository must have these GitHub Actions secrets:
 
@@ -90,12 +89,6 @@ The `suho/nova-launcher` repository must have these GitHub Actions secrets:
   API key.
 - `HOMEBREW_TAP_TOKEN`: fine-grained GitHub token scoped to `suho/homebrew-tap`
   with Contents read/write permission.
-
-These older notarization secrets are not used:
-
-- `APPLE_ID`
-- `APPLE_TEAM_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
 
 The match repository must already contain a Developer ID Application
 certificate. CI runs `fastlane match developer_id --readonly` and only installs
