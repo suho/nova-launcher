@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage(KeyboardShortcut.modifiersDefaultsKey) private var shortcutModifiers = Int(KeyboardShortcut.defaultShortcut.modifiers)
     @State private var accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
     @State private var recordingItemID: LauncherItem.ID?
+    @State private var itemSearchQuery = ""
 
     var body: some View {
         TabView {
@@ -91,7 +92,11 @@ struct SettingsView: View {
     }
 
     private var itemsTab: some View {
-        VStack(spacing: 12) {
+        let commandItems = ItemSearchFilter.match(query: itemSearchQuery, in: store.commandItems)
+        let applicationItems = ItemSearchFilter.match(query: itemSearchQuery, in: store.applicationItems)
+        let isSearching = !itemSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        return VStack(spacing: 12) {
             HStack {
                 Text("Applications and Commands")
                     .font(.headline)
@@ -111,21 +116,38 @@ struct SettingsView: View {
                 }
             }
 
+            HStack {
+                ItemSearchField(query: $itemSearchQuery)
+
+                Spacer()
+            }
+
             List {
-                Section("Window Management") {
-                    ForEach(store.commandItems) { item in
-                        itemConfigurationRow(for: item)
+                if !commandItems.isEmpty {
+                    Section("Window Management") {
+                        ForEach(commandItems) { item in
+                            itemConfigurationRow(for: item)
+                        }
                     }
                 }
 
-                Section("Applications") {
-                    if store.applicationItems.isEmpty {
-                        Text("Indexing Applications")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(store.applicationItems) { item in
-                            itemConfigurationRow(for: item)
+                if !applicationItems.isEmpty || (!isSearching && store.applicationItems.isEmpty) {
+                    Section("Applications") {
+                        if store.applicationItems.isEmpty {
+                            Text("Indexing Applications")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(applicationItems) { item in
+                                itemConfigurationRow(for: item)
+                            }
                         }
+                    }
+                }
+
+                if isSearching && commandItems.isEmpty && applicationItems.isEmpty {
+                    Section {
+                        Text("No Matching Items")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -243,6 +265,46 @@ struct SettingsView: View {
             }
         )
         .equatable()
+    }
+}
+
+private struct ItemSearchField: View {
+    @Binding var query: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+
+            TextField("Search apps and commands", text: $query)
+                .textFieldStyle(.plain)
+                .lineLimit(1)
+                .accessibilityLabel("Search Items")
+
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Clear Search")
+                .help("Clear Search")
+            }
+        }
+        .font(.system(size: 13))
+        .padding(.horizontal, 8)
+        .frame(width: 280, height: 30)
+        .background {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(nsColor: .textBackgroundColor))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+        }
     }
 }
 
