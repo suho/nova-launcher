@@ -20,6 +20,7 @@ concurrency:
 
 env:
   APP_NAME: NovaLauncher
+  APP_IDENTIFIER: app.nova-launcher
   CASK_NAME: nova-launcher
   TAP_REPOSITORY: suho/homebrew-tap
 
@@ -127,6 +128,7 @@ jobs:
           ${fastlane_command} match developer_id \
             --readonly \
             --skip_provisioning_profiles \
+            --app_identifier "${APP_IDENTIFIER}" \
             --keychain_name "${MATCH_KEYCHAIN_NAME}" \
             --keychain_password "${MATCH_KEYCHAIN_PASSWORD}"
 
