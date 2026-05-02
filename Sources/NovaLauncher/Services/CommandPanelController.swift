@@ -39,15 +39,10 @@ final class CommandPanelController: NSObject, NSWindowDelegate {
     func close() {
         sessionRefreshTask?.cancel()
         sessionRefreshTask = nil
-        store.endPaletteSession()
         panel?.orderOut(nil)
     }
 
     func windowDidResignKey(_ notification: Notification) {
-        guard !store.shouldKeepPaletteOpenForAccessibilityRequest else {
-            return
-        }
-
         close()
     }
 

@@ -23,7 +23,6 @@ final class LauncherStore: ObservableObject {
     @Published private(set) var errorToastMessage: String?
     @Published private(set) var focusedWindowDescription: String?
     @Published private(set) var windowCommandUnavailableReason = "Focus a window before opening Nova"
-    @Published private(set) var shouldKeepPaletteOpenForAccessibilityRequest = false
 
     private let indexer = ApplicationIndexer()
     private let launcher = ApplicationLauncher()
@@ -60,7 +59,6 @@ final class LauncherStore: ObservableObject {
         focusedWindow = nil
         focusedWindowDescription = nil
         windowCommandUnavailableReason = "Checking focused window"
-        shouldKeepPaletteOpenForAccessibilityRequest = false
 
         if applications.isEmpty {
             Task {
@@ -77,10 +75,6 @@ final class LauncherStore: ObservableObject {
             noPermissionReason: "Use this command to request Accessibility permission",
             promptForAccessibility: false
         )
-    }
-
-    func endPaletteSession() {
-        shouldKeepPaletteOpenForAccessibilityRequest = false
     }
 
     func refreshApplications() async {
@@ -285,6 +279,7 @@ final class LauncherStore: ObservableObject {
             windowCommandUnavailableReason = noPermissionReason
             showErrorToast(noPermissionReason)
             openingID = nil
+            completion()
             return
         }
 
@@ -372,18 +367,10 @@ final class LauncherStore: ObservableObject {
 
     private func requestAccessibilityForWindowCommand() -> Bool {
         guard !windowManager.accessibilityTrusted(promptForPermission: false) else {
-            shouldKeepPaletteOpenForAccessibilityRequest = false
             return true
         }
 
-        shouldKeepPaletteOpenForAccessibilityRequest = true
-        let isTrusted = windowManager.accessibilityTrusted(promptForPermission: true)
-
-        if isTrusted {
-            shouldKeepPaletteOpenForAccessibilityRequest = false
-        }
-
-        return isTrusted
+        return windowManager.accessibilityTrusted(promptForPermission: true)
     }
 
     private func saveConfiguration(_ configuration: LauncherItemConfiguration, for itemID: LauncherItem.ID) {
