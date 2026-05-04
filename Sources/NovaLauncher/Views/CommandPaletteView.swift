@@ -67,7 +67,7 @@ struct CommandPaletteView: View {
                 .interactive()
         }
 
-        return .regular
+        return .clear
             .tint(paletteSurfaceTint)
             .interactive()
     }
@@ -75,16 +75,16 @@ struct CommandPaletteView: View {
     private var paletteSurfaceTint: Color {
         activeColorScheme == .dark
             ? .black.opacity(0.74)
-            : .white.opacity(0.48)
+            : .white.opacity(0.34)
     }
 
     private var paletteStrokeGradient: LinearGradient {
         let topColor = activeColorScheme == .dark
             ? Color.white.opacity(0.08)
-            : Color.white.opacity(0.62)
+            : Color.white.opacity(0.48)
         let middleColor = activeColorScheme == .dark
             ? Color.white.opacity(0.05)
-            : Color.white.opacity(0.28)
+            : Color.white.opacity(0.18)
         let bottomColor = activeColorScheme == .dark
             ? Color.clear
             : Color.black.opacity(0.07)
@@ -187,7 +187,7 @@ struct CommandPaletteView: View {
                     .fill(.black.opacity(0.16))
             } else {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.white.opacity(0.12))
+                    .fill(.white.opacity(0.06))
             }
         }
     }
