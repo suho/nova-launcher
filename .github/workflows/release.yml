@@ -162,7 +162,7 @@ jobs:
         run: swift test
 
       - name: Build app bundle
-        run: ./script/build_and_run.sh --bundle
+        run: ./script/build_and_run.sh --bundle --production
 
       - name: Sign app bundle
         env:
