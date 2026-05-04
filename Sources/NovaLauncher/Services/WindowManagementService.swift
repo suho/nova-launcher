@@ -1,11 +1,8 @@
 import AppKit
 import ApplicationServices
-import Darwin
 
 @MainActor
 final class WindowManagementService {
-    private let spacesController = SpacesController()
-
     func captureFocusedWindow(promptForAccessibility: Bool) -> FocusedWindowContext? {
         guard accessibilityTrusted(promptForPermission: promptForAccessibility),
               let application = NSWorkspace.shared.frontmostApplication,
@@ -28,18 +25,14 @@ final class WindowManagementService {
         }
 
         let windowElement = focusedWindow as! AXUIElement
-        guard let frame = frame(of: windowElement) else {
+        guard frame(of: windowElement) != nil else {
             return nil
         }
-
-        let screen = screen(containing: frame)
 
         return FocusedWindowContext(
             applicationName: application.localizedName ?? "Focused App",
             windowTitle: stringAttribute(kAXTitleAttribute as CFString, from: windowElement),
             processIdentifier: application.processIdentifier,
-            windowID: windowID(of: windowElement),
-            displayIdentifier: screen.flatMap(displayIdentifier(for:)),
             window: windowElement
         )
     }
@@ -64,25 +57,49 @@ final class WindowManagementService {
             try setWindow(context.window, to: .maximize)
             return "Maximized \(context.applicationName)"
         case .nextDesktop:
-            guard let windowID = context.windowID else {
-                throw WindowManagementError.desktopWindowIdentifierUnavailable
-            }
-
-            try spacesController.moveWindowToNextDesktop(
-                windowID: windowID,
-                preferredDisplayIdentifier: context.displayIdentifier
-            )
-            return "Moved \(context.applicationName) to next desktop"
+            try moveWindowToNextDisplay(context.window)
+            return "Moved \(context.applicationName) to next display"
         }
     }
 
     private func setWindow(_ window: AXUIElement, to placement: WindowPlacement) throws {
         guard let currentFrame = frame(of: window),
-              let screen = screen(containing: currentFrame) ?? NSScreen.main ?? NSScreen.screens.first else {
+              let displayID = display(containingAccessibilityFrame: currentFrame),
+              let visibleFrame = visibleAccessibilityFrame(for: displayID) else {
             throw WindowManagementError.noScreen
         }
 
-        let targetFrame = placement.frame(in: screen.visibleFrame)
+        let targetFrame = placement.frame(in: visibleFrame)
+        try setWindow(window, to: targetFrame)
+    }
+
+    private func moveWindowToNextDisplay(_ window: AXUIElement) throws {
+        guard let currentFrame = frame(of: window),
+              let currentDisplayID = display(containingAccessibilityFrame: currentFrame) else {
+            throw WindowManagementError.noScreen
+        }
+
+        let displayIDs = onlineDisplayIDs()
+        guard displayIDs.count > 1,
+              let currentIndex = displayIDs.firstIndex(of: currentDisplayID) else {
+            throw WindowManagementError.noNextDisplay
+        }
+
+        let nextIndex = displayIDs.index(after: currentIndex) == displayIDs.endIndex
+            ? displayIDs.startIndex
+            : displayIDs.index(after: currentIndex)
+        let targetDisplayID = displayIDs[nextIndex]
+
+        guard let sourceFrame = visibleAccessibilityFrame(for: currentDisplayID),
+              let targetFrame = visibleAccessibilityFrame(for: targetDisplayID) else {
+            throw WindowManagementError.noScreen
+        }
+
+        let movedFrame = currentFrame.moved(from: sourceFrame, to: targetFrame)
+        try setWindow(window, to: movedFrame)
+    }
+
+    private func setWindow(_ window: AXUIElement, to targetFrame: CGRect) throws {
         var targetPosition = targetFrame.origin
         var targetSize = targetFrame.size
 
@@ -163,36 +180,80 @@ final class WindowManagementService {
         return value as? String
     }
 
-    private func windowID(of window: AXUIElement) -> CGWindowID? {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, "AXWindowNumber" as CFString, &value) == .success,
-              let number = value as? NSNumber else {
-            return nil
-        }
-
-        return CGWindowID(number.uint32Value)
-    }
-
-    private func screen(containing frame: CGRect) -> NSScreen? {
+    private func display(containingAccessibilityFrame frame: CGRect) -> CGDirectDisplayID? {
+        let displays = onlineDisplayIDs()
         let center = CGPoint(x: frame.midX, y: frame.midY)
 
-        if let containingScreen = NSScreen.screens.first(where: { $0.frame.contains(center) }) {
-            return containingScreen
+        if let containingDisplay = displays.first(where: { CGDisplayBounds($0).contains(center) }) {
+            return containingDisplay
         }
 
-        return NSScreen.screens.max { first, second in
-            first.frame.intersection(frame).area < second.frame.intersection(frame).area
+        return displays.max { first, second in
+            CGDisplayBounds(first).intersection(frame).area < CGDisplayBounds(second).intersection(frame).area
         }
     }
 
-    private func displayIdentifier(for screen: NSScreen) -> String? {
-        guard let displayNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
-              let unmanagedUUID = CGDisplayCreateUUIDFromDisplayID(CGDirectDisplayID(displayNumber.uint32Value)) else {
+    private func onlineDisplayIDs() -> [CGDirectDisplayID] {
+        var displayCount: UInt32 = 0
+        guard CGGetOnlineDisplayList(0, nil, &displayCount) == .success,
+              displayCount > 0 else {
+            return []
+        }
+
+        var displayIDs = Array(repeating: CGDirectDisplayID(), count: Int(displayCount))
+        guard CGGetOnlineDisplayList(displayCount, &displayIDs, &displayCount) == .success else {
+            return []
+        }
+
+        return Array(displayIDs.prefix(Int(displayCount))).sorted { first, second in
+            let firstBounds = CGDisplayBounds(first)
+            let secondBounds = CGDisplayBounds(second)
+
+            if firstBounds.minX == secondBounds.minX {
+                return firstBounds.minY < secondBounds.minY
+            }
+
+            return firstBounds.minX < secondBounds.minX
+        }
+    }
+
+    private func visibleAccessibilityFrame(for displayID: CGDirectDisplayID) -> CGRect? {
+        let displayBounds = CGDisplayBounds(displayID)
+        guard let screen = screen(for: displayID) else {
+            return displayBounds
+        }
+
+        let screenFrame = screen.frame
+        let visibleFrame = screen.visibleFrame
+        let leftInset = visibleFrame.minX - screenFrame.minX
+        let rightInset = screenFrame.maxX - visibleFrame.maxX
+        let topInset = screenFrame.maxY - visibleFrame.maxY
+        let bottomInset = visibleFrame.minY - screenFrame.minY
+
+        return CGRect(
+            x: displayBounds.minX + leftInset,
+            y: displayBounds.minY + topInset,
+            width: displayBounds.width - leftInset - rightInset,
+            height: displayBounds.height - topInset - bottomInset
+        )
+    }
+
+    private func screen(for displayID: CGDirectDisplayID) -> NSScreen? {
+        NSScreen.screens.first { screen in
+            guard let screenDisplayID = self.displayID(forScreen: screen) else {
+                return false
+            }
+
+            return screenDisplayID == displayID
+        }
+    }
+
+    private func displayID(forScreen screen: NSScreen) -> CGDirectDisplayID? {
+        guard let displayNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return nil
         }
 
-        let uuid = unmanagedUUID.takeRetainedValue()
-        return CFUUIDCreateString(nil, uuid) as String
+        return CGDirectDisplayID(displayNumber.uint32Value)
     }
 }
 
@@ -200,8 +261,6 @@ struct FocusedWindowContext {
     let applicationName: String
     let windowTitle: String?
     let processIdentifier: pid_t
-    let windowID: CGWindowID?
-    let displayIdentifier: String?
     let window: AXUIElement
 
     var displayName: String {
@@ -247,12 +306,9 @@ private enum WindowManagementError: LocalizedError {
     case accessibilityPermissionRequired
     case noFocusedWindow
     case noScreen
-    case noNextDesktop
-    case spacesUnavailable
+    case noNextDisplay
     case unableToMoveWindow
-    case unableToMoveWindowToNextDesktop
     case unsupportedWindow
-    case desktopWindowIdentifierUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -262,152 +318,32 @@ private enum WindowManagementError: LocalizedError {
             "No focused window was captured"
         case .noScreen:
             "Could not determine the window screen"
-        case .noNextDesktop:
-            "No next desktop is available"
-        case .spacesUnavailable:
-            "Desktop spaces are unavailable"
+        case .noNextDisplay:
+            "No next display is available"
         case .unableToMoveWindow:
             "The focused window could not be moved"
-        case .unableToMoveWindowToNextDesktop:
-            "Could not move the focused window to the next desktop"
         case .unsupportedWindow:
             "The focused window does not support this action"
-        case .desktopWindowIdentifierUnavailable:
-            "This window cannot be moved to another desktop"
         }
     }
 }
 
-private final class SpacesController {
-    private typealias CGSConnectionID = Int32
-    private typealias CGSSpaceID = UInt64
-    private typealias MainConnectionFunction = @convention(c) () -> CGSConnectionID
-    private typealias CopyManagedDisplaySpacesFunction = @convention(c) (CGSConnectionID) -> CFArray?
-    private typealias CopyActiveMenuBarDisplayIdentifierFunction = @convention(c) (CGSConnectionID) -> CFString?
-    private typealias MoveWindowsToManagedSpaceFunction = @convention(c) (CGSConnectionID, CFArray, CGSSpaceID) -> Int32
+private extension CGRect {
+    func moved(from sourceFrame: CGRect, to targetFrame: CGRect) -> CGRect {
+        let width = min(size.width, targetFrame.width)
+        let height = min(size.height, targetFrame.height)
+        let relativeMidX = sourceFrame.width > 0 ? (midX - sourceFrame.minX) / sourceFrame.width : 0.5
+        let relativeMidY = sourceFrame.height > 0 ? (midY - sourceFrame.minY) / sourceFrame.height : 0.5
+        let targetMidX = targetFrame.minX + targetFrame.width * relativeMidX
+        let targetMidY = targetFrame.minY + targetFrame.height * relativeMidY
+        let proposedOrigin = CGPoint(x: targetMidX - width / 2, y: targetMidY - height / 2)
 
-    private let mainConnection: MainConnectionFunction?
-    private let copyManagedDisplaySpaces: CopyManagedDisplaySpacesFunction?
-    private let copyActiveMenuBarDisplayIdentifier: CopyActiveMenuBarDisplayIdentifierFunction?
-    private let moveWindowsToManagedSpace: MoveWindowsToManagedSpaceFunction?
-
-    init() {
-        guard let handle = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", RTLD_LAZY) else {
-            mainConnection = nil
-            copyManagedDisplaySpaces = nil
-            copyActiveMenuBarDisplayIdentifier = nil
-            moveWindowsToManagedSpace = nil
-            return
-        }
-
-        mainConnection = Self.loadSymbol("CGSMainConnectionID", from: handle)
-        copyManagedDisplaySpaces = Self.loadSymbol("CGSCopyManagedDisplaySpaces", from: handle)
-        copyActiveMenuBarDisplayIdentifier = Self.loadSymbol("CGSCopyActiveMenuBarDisplayIdentifier", from: handle)
-        moveWindowsToManagedSpace = Self.loadSymbol("CGSMoveWindowsToManagedSpace", from: handle)
-    }
-
-    func moveWindowToNextDesktop(windowID: CGWindowID, preferredDisplayIdentifier: String?) throws {
-        guard let mainConnection,
-              let copyManagedDisplaySpaces,
-              let moveWindowsToManagedSpace else {
-            throw WindowManagementError.spacesUnavailable
-        }
-
-        let connection = mainConnection()
-        guard let managedDisplaySpaces = copyManagedDisplaySpaces(connection),
-              let displays = managedDisplaySpaces as? [[String: Any]],
-              let display = displayDictionary(
-                preferredDisplayIdentifier: preferredDisplayIdentifier,
-                activeDisplayIdentifier: activeDisplayIdentifier(connection),
-                displays: displays
-              ),
-              let currentSpace = display["Current Space"] as? [String: Any],
-              let currentSpaceID = Self.spaceID(from: currentSpace),
-              let spaces = display["Spaces"] as? [[String: Any]] else {
-            throw WindowManagementError.spacesUnavailable
-        }
-
-        let desktopSpaces = spaces.filter(Self.isDesktopSpace)
-        guard desktopSpaces.count > 1,
-              let currentIndex = desktopSpaces.firstIndex(where: { Self.spaceID(from: $0) == currentSpaceID }) else {
-            throw WindowManagementError.noNextDesktop
-        }
-
-        let nextIndex = desktopSpaces.index(after: currentIndex) == desktopSpaces.endIndex
-            ? desktopSpaces.startIndex
-            : desktopSpaces.index(after: currentIndex)
-
-        guard let nextSpaceID = Self.spaceID(from: desktopSpaces[nextIndex]),
-              nextSpaceID != currentSpaceID else {
-            throw WindowManagementError.noNextDesktop
-        }
-
-        let windows = [NSNumber(value: windowID)] as CFArray
-        let result = moveWindowsToManagedSpace(connection, windows, nextSpaceID)
-
-        guard result == 0 else {
-            throw WindowManagementError.unableToMoveWindowToNextDesktop
-        }
-    }
-
-    private func activeDisplayIdentifier(_ connection: CGSConnectionID) -> String? {
-        guard let copyActiveMenuBarDisplayIdentifier else {
-            return nil
-        }
-
-        return copyActiveMenuBarDisplayIdentifier(connection) as String?
-    }
-
-    private func displayDictionary(
-        preferredDisplayIdentifier: String?,
-        activeDisplayIdentifier: String?,
-        displays: [[String: Any]]
-    ) -> [String: Any]? {
-        if let preferredDisplayIdentifier,
-           let display = displays.first(where: { ($0["Display Identifier"] as? String) == preferredDisplayIdentifier }) {
-            return display
-        }
-
-        if let activeDisplayIdentifier,
-           let display = displays.first(where: { ($0["Display Identifier"] as? String) == activeDisplayIdentifier }) {
-            return display
-        }
-
-        return displays.first
-    }
-
-    private static func isDesktopSpace(_ space: [String: Any]) -> Bool {
-        guard let type = space["type"] as? NSNumber else {
-            return true
-        }
-
-        return type.intValue == 0
-    }
-
-    private static func spaceID(from space: [String: Any]) -> CGSSpaceID? {
-        for key in ["id", "ManagedSpaceID", "managedSpaceID"] {
-            if let number = space[key] as? NSNumber {
-                return number.uint64Value
-            }
-
-            if let integer = space[key] as? Int {
-                return CGSSpaceID(integer)
-            }
-
-            if let unsignedInteger = space[key] as? UInt64 {
-                return unsignedInteger
-            }
-        }
-
-        return nil
-    }
-
-    private static func loadSymbol<Symbol>(_ name: String, from handle: UnsafeMutableRawPointer) -> Symbol? {
-        guard let symbol = dlsym(handle, name) else {
-            return nil
-        }
-
-        return unsafeBitCast(symbol, to: Symbol.self)
+        return CGRect(
+            x: min(max(proposedOrigin.x, targetFrame.minX), targetFrame.maxX - width),
+            y: min(max(proposedOrigin.y, targetFrame.minY), targetFrame.maxY - height),
+            width: width,
+            height: height
+        )
     }
 }
 

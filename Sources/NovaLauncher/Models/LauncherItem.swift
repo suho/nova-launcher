@@ -95,7 +95,7 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
         case .maximize:
             "Maximize the focused window"
         case .nextDesktop:
-            "Move the focused window to the next desktop"
+            "Move the focused window to the next display"
         }
     }
 
@@ -121,7 +121,7 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
         case .maximize:
             "window maximize max full screen fill zoom"
         case .nextDesktop:
-            "window next desktop move next space send next desktop"
+            "window next display monitor desktop move next space send next desktop"
         }
     }
 }
