@@ -20,11 +20,6 @@ struct SettingsView: View {
                     Label("General", systemImage: "gearshape")
                 }
 
-            shortcutsTab
-                .tabItem {
-                    Label("Shortcuts", systemImage: "keyboard")
-                }
-
             itemsTab
                 .tabItem {
                     Label("Items", systemImage: "list.bullet.rectangle")
@@ -60,41 +55,41 @@ struct SettingsView: View {
 
     private var generalTab: some View {
         Form {
-            Toggle("Launch at Login", isOn: launchAtLoginBinding)
-
-            HStack {
-                Text("Applications")
-                Spacer()
-                Text("\(store.applications.count)")
-                    .foregroundStyle(.secondary)
+            Section("Startup") {
+                Toggle("Launch at Login", isOn: launchAtLoginBinding)
             }
 
-            Button {
-                Task {
-                    await store.refreshApplications()
+            Section("Launcher Shortcut") {
+                HStack {
+                    Text("Shortcut")
+                    Spacer()
+                    KeyboardShortcutRecorder(shortcut: shortcutBinding)
+                        .frame(width: 180, height: 34)
                 }
-            } label: {
-                Label("Refresh Index", systemImage: "arrow.clockwise")
-            }
-        }
-        .formStyle(.grouped)
-        .padding()
-    }
 
-    private var shortcutsTab: some View {
-        Form {
-            HStack {
-                Text("Launcher")
-                Spacer()
-                KeyboardShortcutRecorder(shortcut: shortcutBinding)
-                    .frame(width: 180, height: 34)
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    Text(hotKeyManager.statusMessage)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            HStack {
-                Text("Status")
-                Spacer()
-                Text(hotKeyManager.statusMessage)
-                    .foregroundStyle(.secondary)
+            Section("Index") {
+                HStack {
+                    Text("Applications")
+                    Spacer()
+                    Text("\(store.applications.count)")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    Task {
+                        await store.refreshApplications()
+                    }
+                } label: {
+                    Label("Refresh Index", systemImage: "arrow.clockwise")
+                }
             }
         }
         .formStyle(.grouped)
