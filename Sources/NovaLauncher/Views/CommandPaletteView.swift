@@ -61,7 +61,13 @@ struct CommandPaletteView: View {
     }
 
     private var paletteGlass: Glass {
-        .clear
+        if activeColorScheme == .dark {
+            return .clear
+                .tint(paletteSurfaceTint)
+                .interactive()
+        }
+
+        return .regular
             .tint(paletteSurfaceTint)
             .interactive()
     }
@@ -69,22 +75,25 @@ struct CommandPaletteView: View {
     private var paletteSurfaceTint: Color {
         activeColorScheme == .dark
             ? .black.opacity(0.74)
-            : .clear
+            : Color.accentColor.opacity(0.18)
     }
 
     private var paletteStrokeGradient: LinearGradient {
         let topColor = activeColorScheme == .dark
             ? Color.white.opacity(0.08)
-            : Color.black.opacity(0.11)
+            : Color.white.opacity(0.62)
         let middleColor = activeColorScheme == .dark
             ? Color.white.opacity(0.05)
-            : Color.black.opacity(0.06)
+            : Color.accentColor.opacity(0.20)
+        let bottomColor = activeColorScheme == .dark
+            ? Color.clear
+            : Color.black.opacity(0.07)
 
         return LinearGradient(
             stops: [
                 .init(color: topColor, location: 0),
                 .init(color: middleColor, location: 0.56),
-                .init(color: .clear, location: 1)
+                .init(color: bottomColor, location: 1)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -176,6 +185,9 @@ struct CommandPaletteView: View {
             if activeColorScheme == .dark {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.black.opacity(0.16))
+            } else {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.035))
             }
         }
     }

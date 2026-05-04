@@ -88,6 +88,12 @@ struct AppResultRow: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(selectionFillColor)
                 .overlay {
+                    if colorScheme == .light {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(.white.opacity(0.28))
+                    }
+                }
+                .overlay {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(selectionStrokeColor, lineWidth: 1)
                 }
@@ -95,11 +101,11 @@ struct AppResultRow: View {
     }
 
     private var selectionFillColor: Color {
-        Color.accentColor.opacity(colorScheme == .dark ? 0.34 : 0.18)
+        Color.accentColor.opacity(colorScheme == .dark ? 0.34 : 0.16)
     }
 
     private var selectionStrokeColor: Color {
-        Color.accentColor.opacity(colorScheme == .dark ? 0.72 : 0.46)
+        Color.accentColor.opacity(colorScheme == .dark ? 0.72 : 0.42)
     }
 
     private func shortcutLabel(_ shortcut: KeyboardShortcut) -> some View {
