@@ -10,7 +10,7 @@ struct NovaLauncherApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("Nova", systemImage: "command") {
+        MenuBarExtra(AppMetadata.menuBarTitle, systemImage: "command") {
             MenuBarContentView(
                 store: services.launcherStore,
                 openLauncher: { services.showCommandPalette() },

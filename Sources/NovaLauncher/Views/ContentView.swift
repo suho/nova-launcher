@@ -165,7 +165,7 @@ struct ContentView: View {
             .frame(width: 76, height: 76)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Nova Launcher")
+                Text(AppMetadata.displayName)
                     .font(.system(size: 34, weight: .bold))
                     .lineLimit(1)
 

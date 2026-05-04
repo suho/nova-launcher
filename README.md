@@ -27,8 +27,19 @@ focuses on local app launching through a keyboard-first command palette.
 ./script/build_and_run.sh
 ```
 
-The script builds the SwiftPM target, stages `dist/NovaLauncher.app`, and opens
+The script builds the SwiftPM target, stages `dist/NovaLauncherDev.app`, and opens
 the app bundle as a foreground macOS application.
+
+Local run, debug, log, telemetry, and verify commands build the development app
+by default as `NovaLauncherDev.app`. It uses the `Nova Launcher Dev` display
+name, the `app.nova-launcher.dev` bundle identifier, and a badged development
+icon so it can run beside the production Homebrew app.
+
+To stage the production app locally:
+
+```bash
+./script/build_and_run.sh --bundle --production
+```
 
 ## Install with Homebrew
 
