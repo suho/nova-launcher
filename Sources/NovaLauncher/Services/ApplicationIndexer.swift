@@ -1,20 +1,41 @@
 import Foundation
 
 struct ApplicationIndexer {
-    private let searchRoots: [URL] = [
+    private static let defaultSearchRoots: [URL] = [
         URL(fileURLWithPath: "/Applications", isDirectory: true),
         URL(fileURLWithPath: "/System/Applications", isDirectory: true),
         URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Applications", isDirectory: true),
         URL(fileURLWithPath: "/System/Library/CoreServices/Applications", isDirectory: true)
     ]
 
+    private static let defaultSpecialApplicationURLs: [URL] = [
+        URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app", isDirectory: true)
+    ]
+
+    private let searchRoots: [URL]
+    private let specialApplicationURLs: [URL]
+
+    init(
+        searchRoots: [URL] = Self.defaultSearchRoots,
+        specialApplicationURLs: [URL] = Self.defaultSpecialApplicationURLs
+    ) {
+        self.searchRoots = searchRoots
+        self.specialApplicationURLs = specialApplicationURLs
+    }
+
     func indexApplications() async -> [ApplicationEntry] {
         await Task.detached(priority: .userInitiated) {
-            Self.indexApplicationsSynchronously(searchRoots: searchRoots)
+            Self.indexApplicationsSynchronously(
+                searchRoots: searchRoots,
+                specialApplicationURLs: specialApplicationURLs
+            )
         }.value
     }
 
-    private static func indexApplicationsSynchronously(searchRoots: [URL]) -> [ApplicationEntry] {
+    private static func indexApplicationsSynchronously(
+        searchRoots: [URL],
+        specialApplicationURLs: [URL]
+    ) -> [ApplicationEntry] {
         let fileManager = FileManager.default
         var seenPaths = Set<String>()
         var entries: [ApplicationEntry] = []
@@ -40,15 +61,34 @@ struct ApplicationIndexer {
                     continue
                 }
 
-                seenPaths.insert(standardizedPath)
-                entries.append(Self.makeEntry(for: url))
+                appendEntry(for: url, seenPaths: &seenPaths, entries: &entries)
                 enumerator.skipDescendants()
             }
+        }
+
+        for url in specialApplicationURLs
+            where fileManager.fileExists(atPath: url.path) && url.pathExtension == "app" {
+            appendEntry(for: url, seenPaths: &seenPaths, entries: &entries)
         }
 
         return entries.sorted {
             $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
+    }
+
+    private static func appendEntry(
+        for url: URL,
+        seenPaths: inout Set<String>,
+        entries: inout [ApplicationEntry]
+    ) {
+        let standardizedPath = url.standardizedFileURL.path
+
+        guard !seenPaths.contains(standardizedPath) else {
+            return
+        }
+
+        seenPaths.insert(standardizedPath)
+        entries.append(Self.makeEntry(for: url))
     }
 
     private static func makeEntry(for url: URL) -> ApplicationEntry {
