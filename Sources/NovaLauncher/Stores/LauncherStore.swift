@@ -27,7 +27,11 @@ final class LauncherStore: ObservableObject {
     private let indexer = ApplicationIndexer()
     private let launcher = ApplicationLauncher()
     private let windowManager = WindowManagementService()
+    private var applicationChangeObserver: ApplicationChangeObserver?
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var scheduledApplicationRefreshTask: Task<Void, Never>?
+    private var isRefreshingApplications = false
+    private var needsApplicationRefresh = false
     private var errorToastDismissTask: Task<Void, Never>?
     private var focusedWindow: FocusedWindowContext?
     let commandItems = WindowCommand.allCases.map(LauncherItem.windowCommand)
@@ -36,6 +40,7 @@ final class LauncherStore: ObservableObject {
 
     init() {
         observeWorkspaceApplications()
+        observeApplicationChanges()
         refreshRunningApplications()
 
         Task {
@@ -44,6 +49,9 @@ final class LauncherStore: ObservableObject {
     }
 
     deinit {
+        applicationChangeObserver?.stop()
+        scheduledApplicationRefreshTask?.cancel()
+
         let notificationCenter = NSWorkspace.shared.notificationCenter
 
         for observer in workspaceObservers {
@@ -78,6 +86,13 @@ final class LauncherStore: ObservableObject {
     }
 
     func refreshApplications() async {
+        if isRefreshingApplications {
+            needsApplicationRefresh = true
+            return
+        }
+
+        isRefreshingApplications = true
+        needsApplicationRefresh = false
         isIndexing = true
         let indexedApplications = await indexer.indexApplications()
         applications = indexedApplications
@@ -89,6 +104,12 @@ final class LauncherStore: ObservableObject {
 
         Task.detached(priority: .utility) {
             await ApplicationIconCache.shared.preload(indexedApplications)
+        }
+
+        isRefreshingApplications = false
+
+        if needsApplicationRefresh {
+            scheduleApplicationRefresh()
         }
     }
 
@@ -406,6 +427,34 @@ final class LauncherStore: ObservableObject {
                     self?.refreshRunningApplications()
                 }
             }
+        }
+    }
+
+    private func observeApplicationChanges() {
+        let observer = ApplicationChangeObserver(watchedURLs: indexer.applicationSearchRoots) { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.scheduleApplicationRefresh()
+            }
+        }
+
+        applicationChangeObserver = observer
+        observer.start()
+    }
+
+    private func scheduleApplicationRefresh() {
+        scheduledApplicationRefreshTask?.cancel()
+        scheduledApplicationRefreshTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 1_500_000_000)
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            await self?.refreshApplications()
         }
     }
 

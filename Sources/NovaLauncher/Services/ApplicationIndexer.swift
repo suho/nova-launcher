@@ -23,6 +23,10 @@ struct ApplicationIndexer {
         self.specialApplicationURLs = specialApplicationURLs
     }
 
+    var applicationSearchRoots: [URL] {
+        searchRoots
+    }
+
     func indexApplications() async -> [ApplicationEntry] {
         await Task.detached(priority: .userInitiated) {
             Self.indexApplicationsSynchronously(
