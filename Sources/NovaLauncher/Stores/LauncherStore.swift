@@ -158,6 +158,8 @@ final class LauncherStore: ObservableObject {
             perform(command, itemID: item.id, completion: completion)
         case .webURL(let webURL):
             open(webURL, itemID: item.id, completion: completion)
+        case .calculator(let result):
+            copy(result, itemID: item.id, completion: completion)
         }
     }
 
@@ -179,6 +181,8 @@ final class LauncherStore: ObservableObject {
                 completion: {}
             )
         case .webURL:
+            break
+        case .calculator:
             break
         }
     }
@@ -213,7 +217,7 @@ final class LauncherStore: ObservableObject {
 
     func subtitle(for item: LauncherItem) -> String {
         switch item {
-        case .application, .webURL:
+        case .application, .webURL, .calculator:
             return item.subtitle
         case .windowCommand(let command):
             guard let focusedWindowDescription else {
@@ -289,6 +293,25 @@ final class LauncherStore: ObservableObject {
 
             self.openingID = nil
         }
+    }
+
+    private func copy(_ result: CalculatorResult, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
+        openingID = itemID
+        clearErrorToast()
+
+        NSPasteboard.general.clearContents()
+        let success = NSPasteboard.general.setString(result.answerString, forType: .string)
+
+        if success {
+            query = ""
+            selectedID = nil
+            clearErrorToast()
+            completion()
+        } else {
+            showErrorToast("Could not copy \(result.answerString)")
+        }
+
+        openingID = nil
     }
 
     private func perform(_ command: WindowCommand, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
@@ -377,7 +400,9 @@ final class LauncherStore: ObservableObject {
             limit: resultLimit
         )
 
-        if let webURL = WebURLItem(query: query) {
+        if let calculatorResult = CalculatorResult(query: query) {
+            filteredItems = [LauncherItem.calculator(calculatorResult)] + matchedItems.prefix(resultLimit - 1)
+        } else if let webURL = WebURLItem(query: query) {
             filteredItems = [LauncherItem.webURL(webURL)] + matchedItems.prefix(resultLimit - 1)
         } else {
             filteredItems = matchedItems

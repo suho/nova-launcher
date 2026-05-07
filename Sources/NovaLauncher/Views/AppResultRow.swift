@@ -28,6 +28,15 @@ struct AppResultRow: View {
 
             Spacer(minLength: 12)
 
+            if let answer = calculatorAnswer {
+                Text(answer)
+                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .accessibilityLabel("Answer \(answer)")
+            }
+
             if let shortcut {
                 shortcutLabel(shortcut)
             }
@@ -79,7 +88,26 @@ struct AppResultRow: View {
                     .foregroundStyle(.primary)
             }
             .frame(width: 36, height: 36)
+        case .calculator:
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.secondary.opacity(0.12))
+
+                Image(systemName: "equal")
+                    .font(.system(size: 18, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.primary)
+            }
+            .frame(width: 36, height: 36)
         }
+    }
+
+    private var calculatorAnswer: String? {
+        guard case .calculator(let result) = item else {
+            return nil
+        }
+
+        return result.answerString
     }
 
     @ViewBuilder

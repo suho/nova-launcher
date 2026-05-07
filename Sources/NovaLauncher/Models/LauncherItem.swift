@@ -4,6 +4,7 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
     case application(ApplicationEntry)
     case windowCommand(WindowCommand)
     case webURL(WebURLItem)
+    case calculator(CalculatorResult)
 
     var id: String {
         switch self {
@@ -13,6 +14,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             "window:\(command.id)"
         case .webURL(let webURL):
             "url:\(webURL.id)"
+        case .calculator(let result):
+            "calculator:\(result.id)"
         }
     }
 
@@ -24,6 +27,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             command.title
         case .webURL:
             "Open URL"
+        case .calculator(let result):
+            result.expression
         }
     }
 
@@ -35,6 +40,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             command.defaultSubtitle
         case .webURL(let webURL):
             webURL.displayString
+        case .calculator:
+            "Copy answer"
         }
     }
 
@@ -50,6 +57,8 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
             command.searchableName
         case .webURL(let webURL):
             webURL.displayString.lowercased()
+        case .calculator(let result):
+            result.expression
         }
     }
 
@@ -57,7 +66,7 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
         switch self {
         case .application(let application):
             application.searchCharacters
-        case .windowCommand, .webURL:
+        case .windowCommand, .webURL, .calculator:
             Array(searchableName)
         }
     }
