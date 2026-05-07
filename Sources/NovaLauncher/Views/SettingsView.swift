@@ -91,6 +91,22 @@ struct SettingsView: View {
                     Label("Refresh Index", systemImage: "arrow.clockwise")
                 }
             }
+
+            Section("Search Ranking") {
+                HStack {
+                    Text("Learned Items")
+                    Spacer()
+                    Text("\(store.learnedRankingItemCount)")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    store.resetRanking()
+                } label: {
+                    Label("Reset Ranking", systemImage: "arrow.counterclockwise")
+                }
+                .disabled(store.learnedRankingItemCount == 0)
+            }
         }
         .formStyle(.grouped)
         .padding()

@@ -9,6 +9,7 @@ final class LauncherStore: ObservableObject {
     @Published private(set) var itemConfigurations = LauncherItemConfigurationPersistence.load()
     @Published private(set) var runningApplicationIDs = Set<LauncherItem.ID>()
     @Published private(set) var isIndexing = false
+    @Published private(set) var learnedRankingItemCount = 0
     @Published var query = "" {
         didSet {
             guard query != oldValue else {
@@ -34,11 +35,14 @@ final class LauncherStore: ObservableObject {
     private var needsApplicationRefresh = false
     private var errorToastDismissTask: Task<Void, Never>?
     private var focusedWindow: FocusedWindowContext?
+    private var rankingRecords = [String: LauncherItemRankingRecord]()
     let commandItems = WindowCommand.allCases.map(LauncherItem.windowCommand)
     var onItemConfigurationsChanged: (() -> Void)?
     var onErrorToastMessageChanged: ((String?) -> Void)?
 
     init() {
+        rankingRecords = LauncherItemRankingPersistence.load()
+        learnedRankingItemCount = rankingRecords.count
         observeWorkspaceApplications()
         observeApplicationChanges()
         refreshRunningApplications()
@@ -233,6 +237,13 @@ final class LauncherStore: ObservableObject {
         runningApplicationIDs.contains(item.id)
     }
 
+    func resetRanking() {
+        rankingRecords.removeAll()
+        learnedRankingItemCount = 0
+        LauncherItemRankingPersistence.reset()
+        updateFilteredItems()
+    }
+
     private func open(_ application: ApplicationEntry, itemID: LauncherItem.ID, completion: @escaping () -> Void) {
         openingID = itemID
         clearErrorToast()
@@ -244,6 +255,7 @@ final class LauncherStore: ObservableObject {
             }
 
             if success {
+                self.recordUse(for: itemID)
                 self.query = ""
                 self.selectedID = nil
                 self.clearErrorToast()
@@ -318,6 +330,7 @@ final class LauncherStore: ObservableObject {
 
         do {
             _ = try windowManager.perform(command, on: commandContext)
+            recordUse(for: itemID)
             query = ""
             selectedID = nil
             clearErrorToast()
@@ -357,7 +370,12 @@ final class LauncherStore: ObservableObject {
 
     private func updateFilteredItems() {
         let resultLimit = 8
-        let matchedItems = FuzzyMatcher.match(query: query, in: searchableItems, limit: resultLimit)
+        let matchedItems = LauncherSearchRanker.rank(
+            query: query,
+            items: searchableItems,
+            rankingRecords: rankingRecords,
+            limit: resultLimit
+        )
 
         if let webURL = WebURLItem(query: query) {
             filteredItems = [LauncherItem.webURL(webURL)] + matchedItems.prefix(resultLimit - 1)
@@ -402,6 +420,14 @@ final class LauncherStore: ObservableObject {
         }
 
         LauncherItemConfigurationPersistence.save(itemConfigurations)
+    }
+
+    private func recordUse(for itemID: LauncherItem.ID) {
+        var record = rankingRecords[itemID] ?? LauncherItemRankingRecord()
+        record.recordUse()
+        rankingRecords[itemID] = record
+        learnedRankingItemCount = rankingRecords.count
+        LauncherItemRankingPersistence.save(rankingRecords)
     }
 
     private var searchableItems: [LauncherItem] {

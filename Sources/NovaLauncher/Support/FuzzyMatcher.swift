@@ -14,6 +14,22 @@ extension ApplicationEntry: FuzzySearchable {
 
 enum FuzzyMatcher {
     static func match<Candidate: FuzzySearchable>(query: String, in candidates: [Candidate], limit: Int) -> [Candidate] {
+        scoredMatches(query: query, in: candidates)
+            .sorted {
+                if $0.score == $1.score {
+                    return $0.candidate.sortName.localizedStandardCompare($1.candidate.sortName) == .orderedAscending
+                }
+
+                return $0.score > $1.score
+            }
+            .prefix(limit)
+            .map(\.candidate)
+    }
+
+    static func scoredMatches<Candidate: FuzzySearchable>(
+        query: String,
+        in candidates: [Candidate]
+    ) -> [FuzzyMatch<Candidate>] {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         guard !normalizedQuery.isEmpty else {
@@ -23,7 +39,7 @@ enum FuzzyMatcher {
         let queryCharacters = Array(normalizedQuery)
 
         return candidates
-            .compactMap { candidate -> (Candidate, Int)? in
+            .compactMap { candidate -> FuzzyMatch<Candidate>? in
                 guard let score = score(
                     queryCharacters,
                     queryString: normalizedQuery,
@@ -32,17 +48,8 @@ enum FuzzyMatcher {
                     return nil
                 }
 
-                return (candidate, score)
+                return FuzzyMatch(candidate: candidate, score: score)
             }
-            .sorted {
-                if $0.1 == $1.1 {
-                    return $0.0.sortName.localizedStandardCompare($1.0.sortName) == .orderedAscending
-                }
-
-                return $0.1 > $1.1
-            }
-            .prefix(limit)
-            .map(\.0)
     }
 
     private static func score(
@@ -94,4 +101,9 @@ enum FuzzyMatcher {
 
         return score - candidateCharacters.count
     }
+}
+
+struct FuzzyMatch<Candidate> {
+    let candidate: Candidate
+    let score: Int
 }
