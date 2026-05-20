@@ -32,6 +32,7 @@ struct ApplicationIndexerTests {
 
         #expect(applications.map(\.name) == ["Finder", "Notes"])
         #expect(applications.first { $0.name == "Finder" }?.bundleIdentifier == "com.apple.finder")
+        #expect(applications.first { $0.name == "Notes" }?.id == "com.example.notes")
     }
 
     @Test func doesNotDuplicateSpecialApplicationsAlreadyFoundInSearchRoots() async throws {
@@ -54,6 +55,44 @@ struct ApplicationIndexerTests {
         let applications = await indexer.indexApplications()
 
         #expect(applications.map(\.name) == ["Finder"])
+    }
+
+    @Test func duplicateBundleIdentifiersKeepDistinctApplicationRows() async throws {
+        let directory = try TemporaryApplicationDirectory()
+        let searchRoot = directory.url.appendingPathComponent("Applications", isDirectory: true)
+        try FileManager.default.createDirectory(at: searchRoot, withIntermediateDirectories: true)
+
+        let xcode265URL = searchRoot.appendingPathComponent("Xcode-26.5.0.app", isDirectory: true)
+        let xcode264URL = searchRoot.appendingPathComponent("Xcode-26.4.1.app", isDirectory: true)
+        try makeApplicationBundle(
+            at: xcode265URL,
+            displayName: "Xcode",
+            bundleIdentifier: "com.apple.dt.Xcode"
+        )
+        try makeApplicationBundle(
+            at: xcode264URL,
+            displayName: "Xcode",
+            bundleIdentifier: "com.apple.dt.Xcode"
+        )
+
+        let indexer = ApplicationIndexer(
+            searchRoots: [searchRoot],
+            specialApplicationURLs: []
+        )
+
+        let applications = await indexer.indexApplications()
+        let items = applications.map(LauncherItem.application)
+        let rankedItems = LauncherSearchRanker.rank(
+            query: "Xcode",
+            items: items,
+            rankingRecords: [:],
+            limit: 8
+        )
+
+        #expect(applications.map(\.name) == ["Xcode-26.4.1", "Xcode-26.5.0"])
+        #expect(Set(applications.map(\.id)).count == 2)
+        #expect(Set(applications.map(\.bundleIdentifier)) == ["com.apple.dt.Xcode"])
+        #expect(rankedItems.map(\.title) == ["Xcode-26.4.1", "Xcode-26.5.0"])
     }
 
     private func makeApplicationBundle(

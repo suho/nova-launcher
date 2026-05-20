@@ -22,4 +22,22 @@ struct ApplicationEntry: Identifiable, Hashable {
     var subtitle: String {
         url.deletingLastPathComponent().path
     }
+
+    func identified(by id: String) -> ApplicationEntry {
+        ApplicationEntry(
+            id: id,
+            name: name,
+            url: url,
+            bundleIdentifier: bundleIdentifier
+        )
+    }
+
+    func renamed(to name: String) -> ApplicationEntry {
+        ApplicationEntry(
+            id: id,
+            name: name,
+            url: url,
+            bundleIdentifier: bundleIdentifier
+        )
+    }
 }

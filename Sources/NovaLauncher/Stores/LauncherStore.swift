@@ -525,16 +525,15 @@ final class LauncherStore: ObservableObject {
         runningIn runningApplications: [NSRunningApplication]
     ) -> Bool {
         runningApplications.contains { runningApplication in
-            if let bundleIdentifier = application.bundleIdentifier,
-               runningApplication.bundleIdentifier == bundleIdentifier {
-                return true
+            if let bundleURL = runningApplication.bundleURL {
+                return bundleURL.standardizedFileURL == application.url.standardizedFileURL
             }
 
-            guard let bundleURL = runningApplication.bundleURL else {
+            guard let bundleIdentifier = application.bundleIdentifier else {
                 return false
             }
 
-            return bundleURL.standardizedFileURL == application.url.standardizedFileURL
+            return runningApplication.bundleIdentifier == bundleIdentifier
         }
     }
 }

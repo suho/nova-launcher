@@ -75,7 +75,7 @@ struct ApplicationIndexer {
             appendEntry(for: url, seenPaths: &seenPaths, entries: &entries)
         }
 
-        return entries.sorted {
+        return normalizeEntries(entries).sorted {
             $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
     }
@@ -109,5 +109,40 @@ struct ApplicationIndexer {
             url: url,
             bundleIdentifier: bundleIdentifier
         )
+    }
+
+    private static func normalizeEntries(_ entries: [ApplicationEntry]) -> [ApplicationEntry] {
+        let duplicateNames = Dictionary(grouping: entries) { $0.name.lowercased() }
+            .filter { $0.value.count > 1 }
+            .map(\.key)
+        let duplicateBundleIdentifiers = Dictionary(grouping: entries.compactMap(\.bundleIdentifier)) { $0 }
+            .filter { $0.value.count > 1 }
+            .map(\.key)
+
+        guard !duplicateNames.isEmpty || !duplicateBundleIdentifiers.isEmpty else {
+            return entries
+        }
+
+        return entries.map { entry in
+            var normalizedEntry = entry
+
+            if let bundleIdentifier = entry.bundleIdentifier,
+               duplicateBundleIdentifiers.contains(bundleIdentifier) {
+                normalizedEntry = entry.identified(by: entry.url.standardizedFileURL.path)
+            }
+
+            guard duplicateNames.contains(normalizedEntry.name.lowercased()) else {
+                return normalizedEntry
+            }
+
+            let fileName = normalizedEntry.url.deletingPathExtension().lastPathComponent
+
+            guard !fileName.isEmpty,
+                  fileName.localizedCaseInsensitiveCompare(normalizedEntry.name) != .orderedSame else {
+                return normalizedEntry
+            }
+
+            return normalizedEntry.renamed(to: fileName)
+        }
     }
 }
