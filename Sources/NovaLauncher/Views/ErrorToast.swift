@@ -42,7 +42,7 @@ struct ErrorToast: View {
     }
 
     private var toastGlass: Glass {
-        .clear
+        .identity
             .interactive()
     }
 
