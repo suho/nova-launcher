@@ -49,8 +49,8 @@ struct ErrorToast: View {
 
     private var toastGlassTint: Color {
         colorScheme == .dark
-            ? .black.opacity(0.10)
-            : .white.opacity(0.08)
+            ? .black.opacity(0.04)
+            : .white.opacity(0.02)
     }
 
     private var toastShadowBacking: some View {
@@ -72,7 +72,7 @@ struct ErrorToast: View {
 
     private var toastStrokeColor: Color {
         colorScheme == .dark
-            ? .white.opacity(0.08)
-            : .black.opacity(0.11)
+            ? .white.opacity(0.06)
+            : .black.opacity(0.07)
     }
 }
