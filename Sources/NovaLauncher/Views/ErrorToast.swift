@@ -42,37 +42,67 @@ struct ErrorToast: View {
     }
 
     private var toastGlass: Glass {
-        .regular
-            .tint(toastGlassTint)
+        .clear
+            .tint(toastSurfaceTint)
             .interactive()
     }
 
-    private var toastGlassTint: Color {
+    private var toastSurfaceTint: Color {
         colorScheme == .dark
-            ? .black.opacity(0.04)
-            : .white.opacity(0.02)
+            ? .black.opacity(0.74)
+            : .white.opacity(0.46)
     }
 
     private var toastShadowBacking: some View {
         toastShape
-            .fill(.black.opacity(0.001))
+            .fill(toastShadowFill)
             .shadow(
                 color: .black.opacity(colorScheme == .dark ? 0.14 : 0.13),
                 radius: colorScheme == .dark ? 30 : 86,
                 y: colorScheme == .dark ? 16 : 34
             )
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.09 : 0.10), radius: 12, y: 5)
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.06 : 0.055), radius: 7, y: 0)
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.09 : 0.10),
+                radius: colorScheme == .dark ? 12 : 42,
+                y: colorScheme == .dark ? 5 : 20
+            )
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.06 : 0.055),
+                radius: colorScheme == .dark ? 7 : 56,
+                y: 0
+            )
+    }
+
+    private var toastShadowFill: Color {
+        colorScheme == .dark
+            ? .black.opacity(0.16)
+            : .white.opacity(0.11)
     }
 
     private var toastSurfaceStroke: some View {
         toastShape
-            .strokeBorder(toastStrokeColor, lineWidth: colorScheme == .dark ? 0.5 : 1)
+            .strokeBorder(toastStrokeGradient, lineWidth: colorScheme == .dark ? 0.5 : 1)
     }
 
-    private var toastStrokeColor: Color {
-        colorScheme == .dark
-            ? .white.opacity(0.06)
-            : .black.opacity(0.07)
+    private var toastStrokeGradient: LinearGradient {
+        let topColor = colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : Color.white.opacity(0.58)
+        let middleColor = colorScheme == .dark
+            ? Color.white.opacity(0.05)
+            : Color.white.opacity(0.26)
+        let bottomColor = colorScheme == .dark
+            ? Color.clear
+            : Color.black.opacity(0.07)
+
+        return LinearGradient(
+            stops: [
+                .init(color: topColor, location: 0),
+                .init(color: middleColor, location: 0.56),
+                .init(color: bottomColor, location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
