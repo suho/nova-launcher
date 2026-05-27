@@ -39,9 +39,10 @@ final class ErrorToastWindowController {
             existingHostingView.rootView = content
             hostingView = existingHostingView
         } else {
-            let newHostingView = NSHostingView(rootView: content)
+            let newHostingView = TransparentHostingView(rootView: content)
             newHostingView.frame = NSRect(origin: .zero, size: ErrorToastWindowContent.minimumWindowSize)
             newHostingView.autoresizingMask = [.width, .height]
+            newHostingView.configureTransparentBackground()
             panel.contentView = newHostingView
             self.hostingView = newHostingView
             hostingView = newHostingView
@@ -83,6 +84,9 @@ final class ErrorToastWindowController {
         panel.animationBehavior = .none
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.isOpaque = false
+        panel.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
 
         return panel
     }
@@ -163,5 +167,22 @@ private final class ErrorToastPanel: NSPanel {
 
     override var canBecomeMain: Bool {
         false
+    }
+}
+
+private final class TransparentHostingView<Content: View>: NSHostingView<Content> {
+    override var isOpaque: Bool {
+        false
+    }
+
+    func configureTransparentBackground() {
+        wantsLayer = true
+        layer?.isOpaque = false
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        configureTransparentBackground()
     }
 }
