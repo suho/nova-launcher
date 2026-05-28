@@ -42,15 +42,15 @@ struct ErrorToast: View {
     }
 
     private var toastGlass: Glass {
-        .clear
+        .regular
             .tint(toastSurfaceTint)
             .interactive()
     }
 
     private var toastSurfaceTint: Color {
         colorScheme == .dark
-            ? .black.opacity(0.74)
-            : .white.opacity(0.46)
+            ? .black.opacity(0.04)
+            : .white.opacity(0.02)
     }
 
     private var toastShadowBacking: some View {
@@ -74,9 +74,7 @@ struct ErrorToast: View {
     }
 
     private var toastShadowFill: Color {
-        colorScheme == .dark
-            ? .black.opacity(0.16)
-            : .white.opacity(0.11)
+        .black.opacity(0.001)
     }
 
     private var toastSurfaceStroke: some View {
@@ -87,10 +85,10 @@ struct ErrorToast: View {
     private var toastStrokeGradient: LinearGradient {
         let topColor = colorScheme == .dark
             ? Color.white.opacity(0.08)
-            : Color.white.opacity(0.58)
+            : Color.white.opacity(0.30)
         let middleColor = colorScheme == .dark
             ? Color.white.opacity(0.05)
-            : Color.white.opacity(0.26)
+            : Color.white.opacity(0.12)
         let bottomColor = colorScheme == .dark
             ? Color.clear
             : Color.black.opacity(0.07)
