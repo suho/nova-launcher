@@ -43,64 +43,104 @@ struct ErrorToast: View {
 
     private var toastGlass: Glass {
         .regular
-            .tint(toastSurfaceTint)
+            .tint(theme.glassTint)
             .interactive()
     }
 
-    private var toastSurfaceTint: Color {
+    private var theme: ErrorToastVisualTheme {
         colorScheme == .dark
-            ? .black.opacity(0.04)
-            : .white.opacity(0.02)
+            ? .dark
+            : .light
     }
 
     private var toastShadowBacking: some View {
         toastShape
-            .fill(toastShadowFill)
+            .fill(theme.shadowFill)
             .shadow(
-                color: .black.opacity(colorScheme == .dark ? 0.14 : 0.13),
-                radius: colorScheme == .dark ? 30 : 86,
-                y: colorScheme == .dark ? 16 : 34
+                color: theme.outerShadowColor,
+                radius: theme.outerShadowRadius,
+                y: theme.outerShadowY
             )
             .shadow(
-                color: .black.opacity(colorScheme == .dark ? 0.09 : 0.10),
-                radius: colorScheme == .dark ? 12 : 42,
-                y: colorScheme == .dark ? 5 : 20
+                color: theme.middleShadowColor,
+                radius: theme.middleShadowRadius,
+                y: theme.middleShadowY
             )
             .shadow(
-                color: .black.opacity(colorScheme == .dark ? 0.06 : 0.055),
-                radius: colorScheme == .dark ? 7 : 56,
-                y: 0
+                color: theme.innerShadowColor,
+                radius: theme.innerShadowRadius,
+                y: theme.innerShadowY
             )
-    }
-
-    private var toastShadowFill: Color {
-        .black.opacity(0.001)
     }
 
     private var toastSurfaceStroke: some View {
         toastShape
-            .strokeBorder(toastStrokeGradient, lineWidth: colorScheme == .dark ? 0.5 : 1)
+            .strokeBorder(toastStrokeGradient, lineWidth: theme.strokeWidth)
     }
 
     private var toastStrokeGradient: LinearGradient {
-        let topColor = colorScheme == .dark
-            ? Color.white.opacity(0.08)
-            : Color.white.opacity(0.30)
-        let middleColor = colorScheme == .dark
-            ? Color.white.opacity(0.05)
-            : Color.white.opacity(0.12)
-        let bottomColor = colorScheme == .dark
-            ? Color.clear
-            : Color.black.opacity(0.07)
-
-        return LinearGradient(
+        LinearGradient(
             stops: [
-                .init(color: topColor, location: 0),
-                .init(color: middleColor, location: 0.56),
-                .init(color: bottomColor, location: 1)
+                .init(color: theme.strokeTopColor, location: 0),
+                .init(color: theme.strokeMiddleColor, location: 0.56),
+                .init(color: theme.strokeBottomColor, location: 1)
             ],
             startPoint: .top,
             endPoint: .bottom
         )
     }
+}
+
+private struct ErrorToastVisualTheme {
+    let glassTint: Color
+    let shadowFill: Color
+    let outerShadowColor: Color
+    let outerShadowRadius: CGFloat
+    let outerShadowY: CGFloat
+    let middleShadowColor: Color
+    let middleShadowRadius: CGFloat
+    let middleShadowY: CGFloat
+    let innerShadowColor: Color
+    let innerShadowRadius: CGFloat
+    let innerShadowY: CGFloat
+    let strokeTopColor: Color
+    let strokeMiddleColor: Color
+    let strokeBottomColor: Color
+    let strokeWidth: CGFloat
+
+    static let light = ErrorToastVisualTheme(
+        glassTint: .white.opacity(0.006),
+        shadowFill: .black.opacity(0.0001),
+        outerShadowColor: .black.opacity(0.08),
+        outerShadowRadius: 64,
+        outerShadowY: 24,
+        middleShadowColor: .black.opacity(0.06),
+        middleShadowRadius: 28,
+        middleShadowY: 12,
+        innerShadowColor: .black.opacity(0.035),
+        innerShadowRadius: 36,
+        innerShadowY: 0,
+        strokeTopColor: .white.opacity(0.18),
+        strokeMiddleColor: .white.opacity(0.06),
+        strokeBottomColor: .black.opacity(0.035),
+        strokeWidth: 1
+    )
+
+    static let dark = ErrorToastVisualTheme(
+        glassTint: .black.opacity(0.018),
+        shadowFill: .black.opacity(0.0001),
+        outerShadowColor: .black.opacity(0.12),
+        outerShadowRadius: 26,
+        outerShadowY: 12,
+        middleShadowColor: .black.opacity(0.07),
+        middleShadowRadius: 10,
+        middleShadowY: 4,
+        innerShadowColor: .black.opacity(0.045),
+        innerShadowRadius: 6,
+        innerShadowY: 0,
+        strokeTopColor: .white.opacity(0.07),
+        strokeMiddleColor: .white.opacity(0.035),
+        strokeBottomColor: .clear,
+        strokeWidth: 0.5
+    )
 }
