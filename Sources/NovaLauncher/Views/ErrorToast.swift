@@ -17,7 +17,7 @@ struct ErrorToast: View {
 
                 Text(message)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(theme.messageColor)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -119,6 +119,7 @@ private struct ErrorToastVisualTheme {
     let strokeMiddleColor: Color
     let strokeBottomColor: Color
     let strokeWidth: CGFloat
+    let messageColor: Color
 
     static let light = ErrorToastVisualTheme(
         glassTint: .white.opacity(0.006),
@@ -135,24 +136,26 @@ private struct ErrorToastVisualTheme {
         strokeTopColor: .white.opacity(0.18),
         strokeMiddleColor: .white.opacity(0.06),
         strokeBottomColor: .black.opacity(0.035),
-        strokeWidth: 1
+        strokeWidth: 1,
+        messageColor: .black.opacity(0.92)
     )
 
     static let dark = ErrorToastVisualTheme(
-        glassTint: .black.opacity(0.018),
-        shadowFill: .black.opacity(0.0001),
-        outerShadowColor: .black.opacity(0.12),
+        glassTint: .black.opacity(0.20),
+        shadowFill: .black.opacity(0.025),
+        outerShadowColor: .black.opacity(0.22),
         outerShadowRadius: 26,
         outerShadowY: 12,
-        middleShadowColor: .black.opacity(0.07),
+        middleShadowColor: .black.opacity(0.12),
         middleShadowRadius: 10,
         middleShadowY: 4,
-        innerShadowColor: .black.opacity(0.045),
+        innerShadowColor: .black.opacity(0.08),
         innerShadowRadius: 6,
         innerShadowY: 0,
-        strokeTopColor: .white.opacity(0.07),
-        strokeMiddleColor: .white.opacity(0.035),
-        strokeBottomColor: .clear,
-        strokeWidth: 0.5
+        strokeTopColor: .white.opacity(0.18),
+        strokeMiddleColor: .white.opacity(0.09),
+        strokeBottomColor: .white.opacity(0.035),
+        strokeWidth: 0.5,
+        messageColor: .white.opacity(0.94)
     )
 }

@@ -29,6 +29,8 @@ final class ErrorToastWindowController {
     private func show(message: String) {
         let panel = self.panel ?? makePanel()
         self.panel = panel
+        let appTheme = currentTheme
+        panel.appearance = appTheme.nsAppearance
         let screen = screenForToast()
         let toastWidth = toastWidth(for: message, on: screen)
 
@@ -48,6 +50,7 @@ final class ErrorToastWindowController {
             hostingView = newHostingView
         }
 
+        hostingView.appearance = appTheme.nsAppearance
         hostingView.invalidateIntrinsicContentSize()
         let fittingSize = hostingView.fittingSize
         let windowWidth = ErrorToastWindowContent.windowWidth(for: toastWidth)
@@ -133,6 +136,10 @@ final class ErrorToastWindowController {
         return NSScreen.screens.first { screen in
             NSMouseInRect(mouseLocation, screen.frame, false)
         } ?? NSScreen.main ?? NSScreen.screens.first
+    }
+
+    private var currentTheme: AppTheme {
+        AppTheme(rawValue: UserDefaults.standard.string(forKey: "appearance.theme") ?? AppTheme.system.rawValue) ?? .system
     }
 }
 
