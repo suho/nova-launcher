@@ -43,7 +43,7 @@ struct ErrorToast: View {
     }
 
     private var toastGlass: Glass {
-        .regular
+        .clear
             .tint(theme.glassTint)
             .interactive()
     }
@@ -122,8 +122,8 @@ private struct ErrorToastVisualTheme {
     let messageColor: Color
 
     static let light = ErrorToastVisualTheme(
-        glassTint: .white.opacity(0.006),
-        shadowFill: .black.opacity(0.0001),
+        glassTint: .white.opacity(0.18),
+        shadowFill: .white.opacity(0.04),
         outerShadowColor: .black.opacity(0.08),
         outerShadowRadius: 64,
         outerShadowY: 24,
@@ -141,8 +141,8 @@ private struct ErrorToastVisualTheme {
     )
 
     static let dark = ErrorToastVisualTheme(
-        glassTint: .black.opacity(0.20),
-        shadowFill: .black.opacity(0.025),
+        glassTint: .black.opacity(0.42),
+        shadowFill: .black.opacity(0.10),
         outerShadowColor: .black.opacity(0.22),
         outerShadowRadius: 26,
         outerShadowY: 12,
