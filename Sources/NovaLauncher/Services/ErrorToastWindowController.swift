@@ -152,11 +152,24 @@ private struct ErrorToastWindowContent: View {
 
     let message: String
     let toastWidth: CGFloat
+    @AppStorage("appearance.theme") private var themeRawValue = AppTheme.system.rawValue
 
     var body: some View {
         ErrorToast(message: message, width: toastWidth)
             .padding(Self.shadowPadding)
             .frame(width: Self.windowWidth(for: toastWidth))
+            .preferredColorScheme(preferredColorScheme)
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        switch AppTheme(rawValue: themeRawValue) ?? .system {
+        case .system:
+            nil
+        case .light:
+            .light
+        case .dark:
+            .dark
+        }
     }
 }
 

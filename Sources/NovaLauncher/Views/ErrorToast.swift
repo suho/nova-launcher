@@ -4,6 +4,7 @@ struct ErrorToast: View {
     let message: String
     let width: CGFloat
 
+    @AppStorage("appearance.theme") private var themeRawValue = AppTheme.system.rawValue
     @Environment(\.colorScheme) private var colorScheme
     @Namespace private var glassNamespace
 
@@ -48,9 +49,20 @@ struct ErrorToast: View {
     }
 
     private var theme: ErrorToastVisualTheme {
-        colorScheme == .dark
+        effectiveColorScheme == .dark
             ? .dark
             : .light
+    }
+
+    private var effectiveColorScheme: ColorScheme {
+        switch AppTheme(rawValue: themeRawValue) ?? .system {
+        case .system:
+            colorScheme
+        case .light:
+            .light
+        case .dark:
+            .dark
+        }
     }
 
     private var toastShadowBacking: some View {
