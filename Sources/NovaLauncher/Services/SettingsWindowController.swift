@@ -31,20 +31,24 @@ final class SettingsWindowController {
 
     private func makeWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: NSSize(width: 760, height: 520)),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 900, height: 620)),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
         window.title = "Nova Settings"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
         window.contentViewController = NSHostingController(
             rootView: SettingsView(
                 store: store,
                 hotKeyManager: hotKeyManager
             )
         )
-        window.setContentSize(NSSize(width: 760, height: 520))
+        window.setContentSize(NSSize(width: 900, height: 620))
+        window.minSize = NSSize(width: 780, height: 540)
+        window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.collectionBehavior = [.moveToActiveSpace]
 
