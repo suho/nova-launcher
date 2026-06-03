@@ -81,7 +81,7 @@ struct ThemePreviewButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 ThemePreviewThumbnail(theme: theme)
-                    .frame(width: 72, height: 42)
+                    .frame(width: theme.previewThumbnailSize.width, height: theme.previewThumbnailSize.height)
                     .overlay {
                         RoundedRectangle(cornerRadius: 7, style: .continuous)
                             .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
@@ -92,7 +92,7 @@ struct ThemePreviewButton: View {
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .lineLimit(1)
             }
-            .frame(width: 78)
+            .frame(width: theme.previewButtonWidth)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -184,6 +184,24 @@ private extension AppTheme {
             "Light"
         case .dark:
             "Dark"
+        }
+    }
+
+    var previewThumbnailSize: CGSize {
+        switch self {
+        case .system:
+            CGSize(width: 84, height: 42)
+        case .light, .dark:
+            CGSize(width: 72, height: 42)
+        }
+    }
+
+    var previewButtonWidth: CGFloat {
+        switch self {
+        case .system:
+            90
+        case .light, .dark:
+            78
         }
     }
 }
