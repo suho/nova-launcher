@@ -52,6 +52,7 @@ struct SettingsView: View {
                 Text((selectedSection ?? .general).title)
                     .font(.headline)
                     .lineLimit(1)
+                    .padding(.trailing, 10)
             }
         }
         .frame(width: 900, height: 620)
