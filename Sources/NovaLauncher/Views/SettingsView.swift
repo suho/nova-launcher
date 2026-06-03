@@ -5,29 +5,29 @@ struct SettingsView: View {
     @ObservedObject var store: LauncherStore
     @ObservedObject var hotKeyManager: HotKeyManager
 
-    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("launchAtLogin.enabled") private var launchAtLogin = false
     @AppStorage("appearance.theme") private var themeRawValue = AppTheme.system.rawValue
     @AppStorage(KeyboardShortcut.keyCodeDefaultsKey) private var shortcutKeyCode = Int(KeyboardShortcut.defaultShortcut.keyCode)
     @AppStorage(KeyboardShortcut.modifiersDefaultsKey) private var shortcutModifiers = Int(KeyboardShortcut.defaultShortcut.modifiers)
-    @State private var selectedSection: SettingsSection = .general
+    @State private var selectedSection: SettingsSection? = .general
     @State private var accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
     @State private var recordingItemID: LauncherItem.ID?
     @State private var itemSearchQuery = ""
 
     var body: some View {
-        GlassEffectContainer(spacing: 18) {
-            HStack(spacing: 0) {
-                sidebar
-
-                Divider()
-                    .opacity(0.34)
-
-                detailColumn
+        NavigationSplitView {
+            List(selection: $selectedSection) {
+                ForEach(SettingsSection.allCases) { section in
+                    Label(section.title, systemImage: section.systemImage)
+                        .tag(section)
+                }
             }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 210, ideal: 230)
+        } detail: {
+            detailColumn(for: selectedSection ?? .general)
         }
         .frame(width: 900, height: 620)
-        .background(settingsWindowBackground)
         .onAppear {
             AppearanceService.apply(currentTheme)
             refreshAccessibilityPermission()
@@ -44,92 +44,36 @@ struct SettingsView: View {
         AppTheme(rawValue: themeRawValue) ?? .system
     }
 
-    private var settingsWindowBackground: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .ignoresSafeArea()
-    }
-
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Spacer()
-                .frame(height: 28)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Nova")
-                    .font(.system(size: 22, weight: .bold))
-
-                Text("Settings")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 20)
-
-            VStack(spacing: 4) {
-                ForEach(SettingsSection.allCases) { section in
-                    SettingsSidebarRow(
-                        section: section,
-                        isSelected: selectedSection == section
-                    ) {
-                        selectedSection = section
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-
-            Spacer()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Label(hotKeyManager.statusMessage, systemImage: "keyboard")
-                    .lineLimit(2)
-
-                Label("\(store.applications.count) apps indexed", systemImage: "shippingbox")
-                    .lineLimit(1)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 18)
-            .padding(.bottom, 18)
-        }
-        .frame(width: 238)
-        .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(sidebarTint)
-                .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        }
-        .padding(10)
-    }
-
-    private var sidebarTint: Color {
-        colorScheme == .dark ? .black.opacity(0.24) : .white.opacity(0.32)
-    }
-
-    private var detailColumn: some View {
+    private func detailColumn(for section: SettingsSection) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                detailHeader
+                detailHeader(for: section)
 
-                detailContent
+                detailContent(for: section)
             }
-            .padding(.horizontal, 34)
-            .padding(.top, 34)
+            .padding(.horizontal, 28)
+            .padding(.top, 28)
             .padding(.bottom, 28)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .scrollIndicators(.visible)
+        .background(.background)
+        .scrollIndicators(.automatic)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var detailHeader: some View {
+    private func detailHeader(for section: SettingsSection) -> some View {
         HStack(spacing: 14) {
-            SettingsIcon(systemImage: selectedSection.systemImage, tint: selectedSection.tint)
+            Image(systemName: section.systemImage)
+                .font(.system(size: 26, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
                 .frame(width: 42, height: 42)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(selectedSection.title)
+                Text(section.title)
                     .font(.system(size: 30, weight: .bold))
 
-                Text(selectedSection.subtitle)
+                Text(section.subtitle)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -139,8 +83,8 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var detailContent: some View {
-        switch selectedSection {
+    private func detailContent(for section: SettingsSection) -> some View {
+        switch section {
         case .general:
             generalPage
         case .items:
@@ -153,25 +97,25 @@ struct SettingsView: View {
     }
 
     private var generalPage: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SettingsGroup("Startup") {
+        Form {
+            Section("Startup") {
                 Toggle("Launch at Login", isOn: launchAtLoginBinding)
             }
 
-            SettingsGroup("Launcher Shortcut") {
-                SettingsRow("Shortcut", systemImage: "keyboard") {
+            Section("Launcher Shortcut") {
+                LabeledContent("Shortcut") {
                     KeyboardShortcutRecorder(shortcut: shortcutBinding)
                         .frame(width: 180, height: 34)
                 }
 
-                SettingsRow("Status", systemImage: "checkmark.circle") {
+                LabeledContent("Status") {
                     Text(hotKeyManager.statusMessage)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            SettingsGroup("Index") {
-                SettingsRow("Applications", systemImage: "app.dashed") {
+            Section("Index") {
+                LabeledContent("Applications") {
                     Text("\(store.applications.count)")
                         .foregroundStyle(.secondary)
                 }
@@ -183,11 +127,10 @@ struct SettingsView: View {
                 } label: {
                     Label("Refresh Index", systemImage: "arrow.clockwise")
                 }
-                .buttonStyle(.glass)
             }
 
-            SettingsGroup("Search Ranking") {
-                SettingsRow("Learned Items", systemImage: "chart.line.uptrend.xyaxis") {
+            Section("Search Ranking") {
+                LabeledContent("Learned Items") {
                     Text("\(store.learnedRankingItemCount)")
                         .foregroundStyle(.secondary)
                 }
@@ -197,10 +140,10 @@ struct SettingsView: View {
                 } label: {
                     Label("Reset Ranking", systemImage: "arrow.counterclockwise")
                 }
-                .buttonStyle(.glass)
                 .disabled(store.learnedRankingItemCount == 0)
             }
         }
+        .formStyle(.grouped)
     }
 
     private var itemsPage: some View {
@@ -223,7 +166,6 @@ struct SettingsView: View {
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .buttonStyle(.glass)
             }
 
             ItemSearchField(query: $itemSearchQuery)
@@ -258,49 +200,30 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.inset)
-            .scrollContentBackground(.hidden)
-            .background(.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .frame(minHeight: 330)
         }
-        .padding(18)
-        .settingsGlassSurface(cornerRadius: 24)
     }
 
     private var appearancePage: some View {
-        SettingsGroup("Theme") {
-            Picker("Theme", selection: $themeRawValue) {
-                ForEach(AppTheme.allCases) { theme in
-                    Label(theme.title, systemImage: theme.systemImage)
-                        .tag(theme.rawValue)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 420)
-
-            HStack(spacing: 12) {
-                ForEach(AppTheme.allCases) { theme in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Image(systemName: theme.systemImage)
-                            .font(.system(size: 20, weight: .semibold))
-                            .symbolRenderingMode(.hierarchical)
-
-                        Text(theme.title)
-                            .font(.callout.weight(.semibold))
+        Form {
+            Section("Theme") {
+                Picker("Theme", selection: $themeRawValue) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Label(theme.title, systemImage: theme.systemImage)
+                            .tag(theme.rawValue)
                     }
-                    .foregroundStyle(theme.rawValue == themeRawValue ? .primary : .secondary)
-                    .padding(14)
-                    .frame(width: 132, height: 92, alignment: .leading)
-                    .background(.quinary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 420)
             }
         }
+        .formStyle(.grouped)
     }
 
     private var privacyPage: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SettingsGroup("Window Management") {
-                SettingsRow("Accessibility", systemImage: "figure") {
+        Form {
+            Section("Window Management") {
+                LabeledContent("Accessibility") {
                     Label(
                         accessibilityPermissionGranted ? "Allowed" : "Required",
                         systemImage: accessibilityPermissionGranted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
@@ -314,34 +237,33 @@ struct SettingsView: View {
                     } label: {
                         Label("Open Accessibility Settings", systemImage: "gearshape")
                     }
-                    .buttonStyle(.glass)
 
                     Button {
                         refreshAccessibilityPermission()
                     } label: {
                         Label("Check Again", systemImage: "arrow.clockwise")
                     }
-                    .buttonStyle(.glass)
                 }
             }
 
-            SettingsGroup("Privacy") {
-                SettingsRow("Indexing", systemImage: "internaldrive") {
+            Section("Privacy") {
+                LabeledContent("Indexing") {
                     Text("Local")
                         .foregroundStyle(.secondary)
                 }
 
-                SettingsRow("Search Roots", systemImage: "folder") {
+                LabeledContent("Search Roots") {
                     Text("/Applications")
                         .foregroundStyle(.secondary)
                 }
 
-                SettingsRow("Network", systemImage: "network.slash") {
+                LabeledContent("Network") {
                     Text("Off")
                         .foregroundStyle(.secondary)
                 }
             }
         }
+        .formStyle(.grouped)
     }
 
     private var shortcutBinding: Binding<KeyboardShortcut> {
@@ -425,12 +347,15 @@ private struct ItemSearchField: View {
             }
         }
         .font(.system(size: 13))
-        .padding(.horizontal, 10)
-        .frame(width: 320, height: 32)
+        .padding(.horizontal, 8)
+        .frame(width: 280, height: 30)
         .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.quinary)
-                .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(nsColor: .textBackgroundColor))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
         }
     }
 }
