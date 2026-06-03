@@ -2,7 +2,6 @@ import SwiftUI
 
 struct AppResultRow: View {
     let item: LauncherItem
-    let subtitle: String
     let isSelected: Bool
     let isRunning: Bool
     let shortcut: KeyboardShortcut?
@@ -15,15 +14,14 @@ struct AppResultRow: View {
             icon
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                HStack(spacing: 7) {
+                    Text(item.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
 
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    categoryLabel
+                }
             }
 
             Spacer(minLength: 12)
@@ -50,6 +48,21 @@ struct AppResultRow: View {
         .frame(height: 52)
         .background(selectionBackground)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var categoryLabel: some View {
+        Text(item.categoryLabel)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background {
+                Capsule()
+                    .fill(.secondary.opacity(0.12))
+            }
+            .accessibilityLabel("Category \(item.categoryLabel)")
     }
 
     @ViewBuilder

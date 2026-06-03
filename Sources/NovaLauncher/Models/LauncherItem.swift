@@ -45,6 +45,15 @@ enum LauncherItem: Identifiable, Hashable, FuzzySearchable {
         }
     }
 
+    var categoryLabel: String {
+        switch self {
+        case .application:
+            "App"
+        case .windowCommand, .webURL, .calculator:
+            "Command"
+        }
+    }
+
     var sortName: String {
         title
     }

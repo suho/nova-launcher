@@ -245,7 +245,6 @@ struct CommandPaletteView: View {
                     ForEach(store.filteredItems) { item in
                         AppResultRow(
                             item: item,
-                            subtitle: store.subtitle(for: item),
                             isSelected: item.id == store.selectedID,
                             isRunning: store.isRunning(item),
                             shortcut: store.configuration(for: item).shortcut,
