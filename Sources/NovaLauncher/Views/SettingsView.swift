@@ -138,31 +138,35 @@ struct SettingsView: View {
 
             Section("Index") {
                 LabeledContent("Applications") {
-                    Text("\(store.applications.count)")
-                        .foregroundStyle(.secondary)
-                }
+                    HStack(spacing: 12) {
+                        Text("\(store.applications.count)")
+                            .foregroundStyle(.secondary)
 
-                Button {
-                    Task {
-                        await store.refreshApplications()
+                        Button {
+                            Task {
+                                await store.refreshApplications()
+                            }
+                        } label: {
+                            Label("Refresh Index", systemImage: "arrow.clockwise")
+                        }
                     }
-                } label: {
-                    Label("Refresh Index", systemImage: "arrow.clockwise")
                 }
             }
 
             Section("Search Ranking") {
                 LabeledContent("Learned Items") {
-                    Text("\(store.learnedRankingItemCount)")
-                        .foregroundStyle(.secondary)
-                }
+                    HStack(spacing: 12) {
+                        Text("\(store.learnedRankingItemCount)")
+                            .foregroundStyle(.secondary)
 
-                Button {
-                    store.resetRanking()
-                } label: {
-                    Label("Reset Ranking", systemImage: "arrow.counterclockwise")
+                        Button {
+                            store.resetRanking()
+                        } label: {
+                            Label("Reset Ranking", systemImage: "arrow.counterclockwise")
+                        }
+                        .disabled(store.learnedRankingItemCount == 0)
+                    }
                 }
-                .disabled(store.learnedRankingItemCount == 0)
             }
         }
         .formStyle(.grouped)
