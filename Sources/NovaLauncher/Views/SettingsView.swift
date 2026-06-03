@@ -65,19 +65,17 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             settingsNavigationBar(for: section)
 
-            Divider()
-
             if section == .items {
                 detailContent(for: section)
                     .padding(.horizontal, 28)
-                    .padding(.top, 20)
+                    .padding(.top, 14)
                     .padding(.bottom, 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else {
                 ScrollView {
                     detailContent(for: section)
                         .padding(.horizontal, 28)
-                        .padding(.top, 20)
+                        .padding(.top, 14)
                         .padding(.bottom, 28)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
@@ -85,19 +83,22 @@ struct SettingsView: View {
             }
         }
         .background(.background)
+        .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func settingsNavigationBar(for section: SettingsSection) -> some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 2) {
+        HStack(spacing: 12) {
+            HStack(spacing: 6) {
                 Button {
                     navigateBack()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .frame(width: 24, height: 24)
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.glass)
+                .controlSize(.mini)
                 .disabled(backStack.isEmpty)
                 .keyboardShortcut("[", modifiers: .command)
                 .help("Back")
@@ -106,9 +107,11 @@ struct SettingsView: View {
                     navigateForward()
                 } label: {
                     Image(systemName: "chevron.right")
-                        .frame(width: 24, height: 24)
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.glass)
+                .controlSize(.mini)
                 .disabled(forwardStack.isEmpty)
                 .keyboardShortcut("]", modifiers: .command)
                 .help("Forward")
@@ -120,9 +123,10 @@ struct SettingsView: View {
 
             Spacer()
         }
-        .padding(.leading, 14)
+        .padding(.leading, 16)
         .padding(.trailing, 18)
-        .frame(height: 52)
+        .frame(height: 38)
+        .background(.clear)
     }
 
     @ViewBuilder
