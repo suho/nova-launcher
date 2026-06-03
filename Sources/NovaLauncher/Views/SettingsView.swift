@@ -10,13 +10,15 @@ struct SettingsView: View {
     @AppStorage(KeyboardShortcut.keyCodeDefaultsKey) private var shortcutKeyCode = Int(KeyboardShortcut.defaultShortcut.keyCode)
     @AppStorage(KeyboardShortcut.modifiersDefaultsKey) private var shortcutModifiers = Int(KeyboardShortcut.defaultShortcut.modifiers)
     @State private var selectedSection: SettingsSection? = .general
+    @State private var backStack: [SettingsSection] = []
+    @State private var forwardStack: [SettingsSection] = []
     @State private var accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
     @State private var recordingItemID: LauncherItem.ID?
     @State private var itemSearchQuery = ""
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedSection) {
+            List(selection: selectedSectionBinding) {
                 ForEach(SettingsSection.allCases) { section in
                     Label(section.title, systemImage: section.systemImage)
                         .tag(section)
@@ -44,42 +46,83 @@ struct SettingsView: View {
         AppTheme(rawValue: themeRawValue) ?? .system
     }
 
-    private func detailColumn(for section: SettingsSection) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                detailHeader(for: section)
+    private var selectedSectionBinding: Binding<SettingsSection?> {
+        Binding(
+            get: {
+                selectedSection
+            },
+            set: { newValue in
+                guard let newValue else {
+                    return
+                }
 
-                detailContent(for: section)
+                selectSection(newValue)
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 28)
-            .padding(.bottom, 28)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        )
+    }
+
+    private func detailColumn(for section: SettingsSection) -> some View {
+        VStack(spacing: 0) {
+            settingsNavigationBar(for: section)
+
+            Divider()
+
+            if section == .items {
+                detailContent(for: section)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 20)
+                    .padding(.bottom, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                ScrollView {
+                    detailContent(for: section)
+                        .padding(.horizontal, 28)
+                        .padding(.top, 20)
+                        .padding(.bottom, 28)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .scrollIndicators(.automatic)
+            }
         }
         .background(.background)
-        .scrollIndicators(.automatic)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func detailHeader(for section: SettingsSection) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: section.systemImage)
-                .font(.system(size: 26, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.secondary)
-                .frame(width: 42, height: 42)
+    private func settingsNavigationBar(for section: SettingsSection) -> some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 2) {
+                Button {
+                    navigateBack()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.borderless)
+                .disabled(backStack.isEmpty)
+                .keyboardShortcut("[", modifiers: .command)
+                .help("Back")
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(section.title)
-                    .font(.system(size: 30, weight: .bold))
-
-                Text(section.subtitle)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                Button {
+                    navigateForward()
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.borderless)
+                .disabled(forwardStack.isEmpty)
+                .keyboardShortcut("]", modifiers: .command)
+                .help("Forward")
             }
+
+            Text(section.title)
+                .font(.headline)
+                .lineLimit(1)
 
             Spacer()
         }
+        .padding(.leading, 14)
+        .padding(.trailing, 18)
+        .frame(height: 52)
     }
 
     @ViewBuilder
@@ -103,12 +146,12 @@ struct SettingsView: View {
             }
 
             Section("Launcher Shortcut") {
-                LabeledContent("Shortcut") {
+                SettingsAlignedRow("Shortcut") {
                     KeyboardShortcutRecorder(shortcut: shortcutBinding)
                         .frame(width: 180, height: 34)
                 }
 
-                LabeledContent("Status") {
+                SettingsAlignedRow("Status") {
                     Text(hotKeyManager.statusMessage)
                         .foregroundStyle(.secondary)
                 }
@@ -200,21 +243,26 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.inset)
-            .frame(minHeight: 330)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var appearancePage: some View {
         Form {
             Section("Theme") {
-                Picker("Theme", selection: $themeRawValue) {
-                    ForEach(AppTheme.allCases) { theme in
-                        Label(theme.title, systemImage: theme.systemImage)
-                            .tag(theme.rawValue)
+                SettingsAlignedRow("Appearance") {
+                    HStack(spacing: 12) {
+                        ForEach(AppTheme.allCases) { theme in
+                            ThemePreviewButton(
+                                theme: theme,
+                                isSelected: theme.rawValue == themeRawValue
+                            ) {
+                                themeRawValue = theme.rawValue
+                            }
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 420)
             }
         }
         .formStyle(.grouped)
@@ -294,6 +342,42 @@ struct SettingsView: View {
 
     private func refreshAccessibilityPermission() {
         accessibilityPermissionGranted = AccessibilityPermissionService.isTrusted()
+    }
+
+    private func selectSection(_ section: SettingsSection) {
+        let currentSection = selectedSection ?? .general
+
+        guard section != currentSection else {
+            return
+        }
+
+        backStack.append(currentSection)
+        forwardStack.removeAll()
+        selectedSection = section
+    }
+
+    private func navigateBack() {
+        guard let previousSection = backStack.popLast() else {
+            return
+        }
+
+        if let currentSection = selectedSection {
+            forwardStack.append(currentSection)
+        }
+
+        selectedSection = previousSection
+    }
+
+    private func navigateForward() {
+        guard let nextSection = forwardStack.popLast() else {
+            return
+        }
+
+        if let currentSection = selectedSection {
+            backStack.append(currentSection)
+        }
+
+        selectedSection = nextSection
     }
 
     private func itemConfigurationRow(for item: LauncherItem) -> some View {
