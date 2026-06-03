@@ -291,13 +291,27 @@ struct CommandPaletteView: View {
 
     private var footer: some View {
         HStack(spacing: 14) {
-            FooterShortcut(symbol: "arrow.up.arrow.down", label: "Select")
-            FooterShortcut(symbol: "return", label: "Open")
-            FooterShortcut(symbol: "escape", label: "Close")
+            FooterActionButton(symbol: "arrow.up.arrow.down", label: "Select") {
+                selectNextResult()
+            }
+
+            FooterActionButton(symbol: "return", label: "Open") {
+                store.openSelected(completion: dismiss)
+            }
+
+            FooterActionButton(symbol: "escape", label: "Close", action: dismiss)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    private func selectNextResult() {
+        if store.selectedID == nil {
+            store.selectFirstResult()
+        } else {
+            store.moveSelection(by: 1)
+        }
     }
 }
 
@@ -444,17 +458,27 @@ private final class PaletteDropShadowHostView: NSView {
     }
 }
 
-private struct FooterShortcut: View {
+private struct FooterActionButton: View {
     let symbol: String
     let label: String
+    let action: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: symbol)
-                .font(.caption.weight(.semibold))
-            Text(label)
-                .font(.caption)
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: symbol)
+                    .font(.caption.weight(.semibold))
+
+                Text(label)
+                    .font(.caption.weight(.medium))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
         }
-        .foregroundStyle(.secondary)
+        .buttonStyle(.plain)
+        .glassEffect(.clear.interactive(), in: Capsule(style: .continuous))
+        .contentShape(Capsule(style: .continuous))
+        .accessibilityLabel(label)
     }
 }
