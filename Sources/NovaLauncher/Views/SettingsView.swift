@@ -134,11 +134,6 @@ struct SettingsView: View {
                     KeyboardShortcutRecorder(shortcut: shortcutBinding)
                         .frame(width: 180, height: 34)
                 }
-
-                SettingsAlignedRow("Status") {
-                    Text(hotKeyManager.statusMessage)
-                        .foregroundStyle(.secondary)
-                }
             }
 
             Section("Index") {
