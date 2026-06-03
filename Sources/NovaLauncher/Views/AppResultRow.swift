@@ -153,13 +153,16 @@ struct AppResultRow: View {
         Button {} label: {
             Text(shortcut.displayString)
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.capsule)
-        .controlSize(.small)
+        .buttonStyle(.plain)
+        .glassEffect(.clear.interactive(), in: Capsule(style: .continuous))
+        .contentShape(Capsule(style: .continuous))
         .allowsHitTesting(false)
-            .accessibilityLabel("Shortcut \(shortcut.displayString)")
+        .accessibilityLabel("Shortcut \(shortcut.displayString)")
     }
 }
