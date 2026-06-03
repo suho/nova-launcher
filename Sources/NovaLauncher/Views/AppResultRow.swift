@@ -150,11 +150,16 @@ struct AppResultRow: View {
     }
 
     private func shortcutLabel(_ shortcut: KeyboardShortcut) -> some View {
-        Text(shortcut.displayString)
-            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+        Button {} label: {
+            Text(shortcut.displayString)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
+        .controlSize(.small)
+        .allowsHitTesting(false)
             .accessibilityLabel("Shortcut \(shortcut.displayString)")
     }
 }
