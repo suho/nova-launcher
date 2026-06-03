@@ -62,28 +62,27 @@ struct SettingsView: View {
     }
 
     private func detailColumn(for section: SettingsSection) -> some View {
-        VStack(spacing: 0) {
-            settingsNavigationBar(for: section)
-
+        ZStack(alignment: .top) {
             if section == .items {
                 detailContent(for: section)
                     .padding(.horizontal, 28)
-                    .padding(.top, 14)
+                    .padding(.top, 54)
                     .padding(.bottom, 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else {
                 ScrollView {
                     detailContent(for: section)
                         .padding(.horizontal, 28)
-                        .padding(.top, 14)
+                        .padding(.top, 54)
                         .padding(.bottom, 28)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .scrollIndicators(.automatic)
             }
+
+            settingsNavigationBar(for: section)
         }
         .background(.background)
-        .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -97,8 +96,7 @@ struct SettingsView: View {
                         .font(.system(size: 11, weight: .semibold))
                         .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.glass)
-                .controlSize(.mini)
+                .buttonStyle(SettingsNavigationButtonStyle())
                 .disabled(backStack.isEmpty)
                 .keyboardShortcut("[", modifiers: .command)
                 .help("Back")
@@ -110,8 +108,7 @@ struct SettingsView: View {
                         .font(.system(size: 11, weight: .semibold))
                         .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.glass)
-                .controlSize(.mini)
+                .buttonStyle(SettingsNavigationButtonStyle())
                 .disabled(forwardStack.isEmpty)
                 .keyboardShortcut("]", modifiers: .command)
                 .help("Forward")
@@ -125,8 +122,12 @@ struct SettingsView: View {
         }
         .padding(.leading, 16)
         .padding(.trailing, 18)
-        .frame(height: 38)
-        .background(.clear)
+        .frame(height: 42)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(0.78)
+        }
     }
 
     @ViewBuilder

@@ -72,6 +72,26 @@ struct SettingsAlignedRow<Content: View>: View {
     }
 }
 
+struct SettingsNavigationButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? .primary : .tertiary)
+            .background {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.thinMaterial)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(.white.opacity(configuration.isPressed ? 0.34 : 0.18), lineWidth: 0.5)
+            }
+            .opacity(isEnabled ? 1 : 0.55)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
 struct ThemePreviewButton: View {
     let theme: AppTheme
     let isSelected: Bool
