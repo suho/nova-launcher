@@ -29,6 +29,31 @@ struct SettingsView: View {
         } detail: {
             detailColumn(for: selectedSection ?? .general)
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                Button {
+                    navigateBack()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .disabled(backStack.isEmpty)
+                .keyboardShortcut("[", modifiers: .command)
+                .help("Back")
+
+                Button {
+                    navigateForward()
+                } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .disabled(forwardStack.isEmpty)
+                .keyboardShortcut("]", modifiers: .command)
+                .help("Forward")
+
+                Text((selectedSection ?? .general).title)
+                    .font(.headline)
+                    .lineLimit(1)
+            }
+        }
         .frame(width: 900, height: 620)
         .onAppear {
             AppearanceService.apply(currentTheme)
@@ -61,72 +86,25 @@ struct SettingsView: View {
         )
     }
 
+    @ViewBuilder
     private func detailColumn(for section: SettingsSection) -> some View {
-        ZStack(alignment: .top) {
-            if section == .items {
+        if section == .items {
+            detailContent(for: section)
+                .padding(.horizontal, 28)
+                .padding(.top, 22)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(.background)
+        } else {
+            ScrollView {
                 detailContent(for: section)
                     .padding(.horizontal, 28)
-                    .padding(.top, 54)
-                    .padding(.bottom, 20)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            } else {
-                ScrollView {
-                    detailContent(for: section)
-                        .padding(.horizontal, 28)
-                        .padding(.top, 54)
-                        .padding(.bottom, 28)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                .scrollIndicators(.automatic)
+                    .padding(.top, 22)
+                    .padding(.bottom, 28)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-
-            settingsNavigationBar(for: section)
-        }
-        .background(.background)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func settingsNavigationBar(for section: SettingsSection) -> some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Button {
-                    navigateBack()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(SettingsNavigationButtonStyle())
-                .disabled(backStack.isEmpty)
-                .keyboardShortcut("[", modifiers: .command)
-                .help("Back")
-
-                Button {
-                    navigateForward()
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(SettingsNavigationButtonStyle())
-                .disabled(forwardStack.isEmpty)
-                .keyboardShortcut("]", modifiers: .command)
-                .help("Forward")
-            }
-
-            Text(section.title)
-                .font(.headline)
-                .lineLimit(1)
-
-            Spacer()
-        }
-        .padding(.leading, 16)
-        .padding(.trailing, 18)
-        .frame(height: 42)
-        .background {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .opacity(0.78)
+            .background(.background)
+            .scrollIndicators(.automatic)
         }
     }
 
