@@ -113,7 +113,7 @@ enum WindowCommand: String, CaseIterable, Identifiable, Hashable {
         case .maximize:
             "Maximize the focused window"
         case .nextDesktop:
-            "Move the focused window to the next display"
+            "Move and maximize the focused window on the next display"
         }
     }
 
