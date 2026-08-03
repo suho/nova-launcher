@@ -58,7 +58,7 @@ final class WindowManagementService {
             return "Maximized \(context.applicationName)"
         case .nextDesktop:
             try moveWindowToNextDisplay(context.window)
-            return "Moved \(context.applicationName) to next display"
+            return "Moved and maximized \(context.applicationName) on next display"
         }
     }
 
@@ -97,6 +97,7 @@ final class WindowManagementService {
 
         let movedFrame = currentFrame.moved(from: sourceFrame, to: targetFrame)
         try setWindow(window, to: movedFrame)
+        try setWindow(window, to: targetFrame)
     }
 
     private func setWindow(_ window: AXUIElement, to targetFrame: CGRect) throws {

@@ -232,7 +232,7 @@ final class LauncherStore: ObservableObject {
             case .maximize:
                 return "Maximize \(focusedWindowDescription)"
             case .nextDesktop:
-                return "Move \(focusedWindowDescription) to the next display"
+                return "Move and maximize \(focusedWindowDescription) on the next display"
             }
         }
     }
