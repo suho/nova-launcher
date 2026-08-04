@@ -96,8 +96,40 @@ final class WindowManagementService {
         }
 
         let movedFrame = currentFrame.moved(from: sourceFrame, to: targetFrame)
-        try setWindow(window, to: movedFrame)
+        try moveWindow(window, to: movedFrame.origin)
+        try waitForWindow(window, toReach: targetDisplayID)
         try setWindow(window, to: targetFrame)
+    }
+
+    private func moveWindow(_ window: AXUIElement, to targetPosition: CGPoint) throws {
+        var targetPosition = targetPosition
+
+        guard let positionValue = AXValueCreate(.cgPoint, &targetPosition) else {
+            throw WindowManagementError.unsupportedWindow
+        }
+
+        guard AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) == .success else {
+            throw WindowManagementError.unableToMoveWindow
+        }
+    }
+
+    private func waitForWindow(
+        _ window: AXUIElement,
+        toReach displayID: CGDirectDisplayID,
+        timeout: TimeInterval = 0.5
+    ) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+
+        repeat {
+            if let currentFrame = frame(of: window),
+               display(containingAccessibilityFrame: currentFrame) == displayID {
+                return
+            }
+
+            RunLoop.current.run(until: min(deadline, Date().addingTimeInterval(0.01)))
+        } while Date() < deadline
+
+        throw WindowManagementError.unableToMoveWindow
     }
 
     private func setWindow(_ window: AXUIElement, to targetFrame: CGRect) throws {
