@@ -116,17 +116,27 @@ final class WindowManagementService {
     private func waitForWindow(
         _ window: AXUIElement,
         toReach displayID: CGDirectDisplayID,
+        settleDuration: TimeInterval = 0.15,
         timeout: TimeInterval = 0.5
     ) throws {
         let deadline = Date().addingTimeInterval(timeout)
+        var reachedTargetAt: Date?
 
         repeat {
+            let now = Date()
             if let currentFrame = frame(of: window),
                display(containingAccessibilityFrame: currentFrame) == displayID {
-                return
+                if let reachedTargetAt,
+                   now.timeIntervalSince(reachedTargetAt) >= settleDuration {
+                    return
+                }
+
+                reachedTargetAt = reachedTargetAt ?? now
+            } else {
+                reachedTargetAt = nil
             }
 
-            RunLoop.current.run(until: min(deadline, Date().addingTimeInterval(0.01)))
+            RunLoop.current.run(until: min(deadline, now.addingTimeInterval(0.01)))
         } while Date() < deadline
 
         throw WindowManagementError.unableToMoveWindow
